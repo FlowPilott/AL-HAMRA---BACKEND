@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Alhamra.Models;
+namespace WAS_Management.Models;
 
 public partial class User
 {

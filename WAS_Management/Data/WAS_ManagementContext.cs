@@ -1,18 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
-using Alhamra.Models;
 using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
+using WAS_Management.Models;
 
-namespace Alhamra.Data;
+namespace WAS_Management.Data;
 
-public partial class AlhamraContext : DbContext
+public partial class WAS_ManagementContext : DbContext
 {
-    public AlhamraContext()
+    public WAS_ManagementContext()
     {
     }
 
-    public AlhamraContext(DbContextOptions<AlhamraContext> options)
+    public WAS_ManagementContext(DbContextOptions<WAS_ManagementContext> options)
         : base(options)
     {
     }
@@ -80,7 +80,7 @@ public partial class AlhamraContext : DbContext
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
-            entity.ToTable("interactions");
+            entity.ToTable("interaction");
 
             entity.Property(e => e.Id).HasColumnName("id");
             entity.Property(e => e.ContactNo)
@@ -111,7 +111,7 @@ public partial class AlhamraContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("contractor_rep_name");
             entity.Property(e => e.CurrentProposedLayout)
-                .HasPrecision(10)
+                .HasMaxLength(255)
                 .HasColumnName("current_proposed_layout");
             entity.Property(e => e.CustomerType)
                 .HasMaxLength(255)
@@ -128,7 +128,9 @@ public partial class AlhamraContext : DbContext
             entity.Property(e => e.EmirateId)
                 .HasMaxLength(255)
                 .HasColumnName("emirate_id");
-            entity.Property(e => e.EndDuration).HasColumnName("end_duration");
+            entity.Property(e => e.EndDuration)
+                .HasColumnType("datetime")
+                .HasColumnName("end_duration");
             entity.Property(e => e.FollowUp)
                 .HasMaxLength(255)
                 .HasColumnName("follow_up");
@@ -139,7 +141,7 @@ public partial class AlhamraContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("internal_work");
             entity.Property(e => e.OwnerName)
-                .HasColumnType("datetime")
+                .HasMaxLength(255)
                 .HasColumnName("owner_name");
             entity.Property(e => e.ProjectName)
                 .HasMaxLength(255)
@@ -150,11 +152,15 @@ public partial class AlhamraContext : DbContext
             entity.Property(e => e.PurposeOfInteraction)
                 .HasMaxLength(255)
                 .HasColumnName("purpose_of_interaction");
-            entity.Property(e => e.Remarks).HasMaxLength(255);
+            entity.Property(e => e.Remarks)
+                .HasMaxLength(255)
+                .HasColumnName("remarks");
             entity.Property(e => e.ScopeOfWork)
                 .HasMaxLength(255)
                 .HasColumnName("scope_of_work");
-            entity.Property(e => e.StartDuration).HasColumnName("start_duration");
+            entity.Property(e => e.StartDuration)
+                .HasColumnType("datetime")
+                .HasColumnName("start_duration");
             entity.Property(e => e.ThirdPartyLiabilityCert)
                 .HasMaxLength(255)
                 .HasColumnName("third_party_liability_cert");

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace Alhamra.Models;
+namespace WAS_Management.Models;
 
 public partial class Interaction
 {
@@ -33,7 +33,7 @@ public partial class Interaction
 
     public string? PropertyType { get; set; }
 
-    public DateTime? OwnerName { get; set; }
+    public string? OwnerName { get; set; }
 
     public string? ContactNo { get; set; }
 
@@ -65,9 +65,9 @@ public partial class Interaction
 
     public string? ThirdPartyLiabilityCert { get; set; }
 
-    public decimal? CurrentProposedLayout { get; set; }
+    public string? CurrentProposedLayout { get; set; }
 
-    public DateOnly? StartDuration { get; set; }
+    public DateTime? StartDuration { get; set; }
 
-    public DateOnly? EndDuration { get; set; }
+    public DateTime? EndDuration { get; set; }
 }
