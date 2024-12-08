@@ -148,7 +148,7 @@ namespace WAS_Management.Controllers
         }
 
 
-        private async Task SendModificationEmail(Interaction interaction)
+        private async System.Threading.Tasks.Task SendModificationEmail(Interaction interaction)
         {
             var smtpClient = new SmtpClient(_configuration["Mail:Host"])
             {

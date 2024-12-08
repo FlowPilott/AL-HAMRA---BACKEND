@@ -21,10 +21,22 @@ public partial class WAS_ManagementContext : DbContext
 
     public virtual DbSet<Interaction> Interactions { get; set; }
 
+    public virtual DbSet<StepAction> StepActions { get; set; }
+
+    public virtual DbSet<Models.Task> Tasks { get; set; }
+
     public virtual DbSet<User> Users { get; set; }
 
+    public virtual DbSet<Workflow> Workflows { get; set; }
+
+    public virtual DbSet<WorkflowDocument> WorkflowDocuments { get; set; }
+
+    public virtual DbSet<WorkflowStep> WorkflowSteps { get; set; }
+
+    public virtual DbSet<WorkflowType> WorkflowTypes { get; set; }
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseMySql("name=DefaultConnection", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.39-mysql"));
+        => optionsBuilder.UseMySql("name=DefaultConnection", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.40-mysql"));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -181,6 +193,66 @@ public partial class WAS_ManagementContext : DbContext
                 .HasColumnName("work_type");
         });
 
+        modelBuilder.Entity<StepAction>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("step_actions");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.ActionType)
+                .HasColumnType("enum('RFI','Reassign','Return Step','Submit')")
+                .HasColumnName("action_type");
+            entity.Property(e => e.AssignTo).HasColumnName("assignTo");
+            entity.Property(e => e.BuiltupExtensionFee).HasPrecision(18, 2);
+            entity.Property(e => e.Category).HasMaxLength(255);
+            entity.Property(e => e.Comments)
+                .HasColumnType("text")
+                .HasColumnName("comments");
+            entity.Property(e => e.ContactNumber).HasMaxLength(255);
+            entity.Property(e => e.Email).HasMaxLength(50);
+            entity.Property(e => e.InvNuumber).HasMaxLength(255);
+            entity.Property(e => e.ModificationFee).HasPrecision(18, 2);
+            entity.Property(e => e.Name).HasMaxLength(255);
+            entity.Property(e => e.PerformedBy).HasColumnName("performed_by");
+            entity.Property(e => e.PerformedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("performed_on");
+            entity.Property(e => e.StepId).HasColumnName("step_id");
+            entity.Property(e => e.SubCat).HasMaxLength(255);
+            entity.Property(e => e.Total).HasPrecision(18, 2);
+            entity.Property(e => e.UnlistedContractorFee).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<Models.Task>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("tasks");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Ageing).HasColumnName("ageing");
+            entity.Property(e => e.AssignedTo).HasColumnName("assigned_to");
+            entity.Property(e => e.Department)
+                .HasMaxLength(255)
+                .HasColumnName("department");
+            entity.Property(e => e.DueDate)
+                .HasColumnType("datetime")
+                .HasColumnName("due_date");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
+            entity.Property(e => e.StepId).HasColumnName("step_id");
+            entity.Property(e => e.TaskType)
+                .HasColumnType("enum('Workflow','RFI','Reassigned','Return Step')")
+                .HasColumnName("task_type");
+            entity.Property(e => e.Template)
+                .HasMaxLength(255)
+                .HasColumnName("template");
+            entity.Property(e => e.WorkflowId).HasColumnName("workflow_id");
+        });
+
         modelBuilder.Entity<User>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
@@ -200,6 +272,109 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.Username)
                 .HasMaxLength(255)
                 .HasColumnName("username");
+        });
+
+        modelBuilder.Entity<Workflow>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("workflows");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Details)
+                .HasColumnType("json")
+                .HasColumnName("details");
+            entity.Property(e => e.InitiatorId).HasColumnName("initiator_id");
+            entity.Property(e => e.ProcessOwner).HasColumnName("process_owner");
+            entity.Property(e => e.Progress)
+                .HasMaxLength(50)
+                .HasColumnName("progress");
+            entity.Property(e => e.StartedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("started_on");
+            entity.Property(e => e.Status)
+                .HasMaxLength(255)
+                .HasColumnName("status");
+            entity.Property(e => e.Subject)
+                .HasMaxLength(255)
+                .HasColumnName("subject");
+            entity.Property(e => e.WorkflowTypeId).HasColumnName("workflow_type_id");
+        });
+
+        modelBuilder.Entity<WorkflowDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("workflow_documents");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.DocumentName)
+                .HasMaxLength(255)
+                .HasColumnName("document_name");
+            entity.Property(e => e.DocumentPath)
+                .HasMaxLength(255)
+                .HasColumnName("document_path");
+            entity.Property(e => e.StepId).HasColumnName("step_id");
+            entity.Property(e => e.UploadedBy).HasColumnName("uploaded_by");
+            entity.Property(e => e.UploadedOn)
+                .HasDefaultValueSql("CURRENT_TIMESTAMP")
+                .HasColumnType("datetime")
+                .HasColumnName("uploaded_on");
+            entity.Property(e => e.WorkflowId).HasColumnName("workflow_id");
+        });
+
+        modelBuilder.Entity<WorkflowStep>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("workflow_steps");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Actiondetails)
+                .HasColumnType("json")
+                .HasColumnName("actiondetails");
+            entity.Property(e => e.AssignedTo)
+                .HasColumnType("json")
+                .HasColumnName("assigned_to");
+            entity.Property(e => e.Details)
+                .HasColumnType("json")
+                .HasColumnName("details");
+            entity.Property(e => e.DueOn)
+                .HasColumnType("datetime")
+                .HasColumnName("due_on");
+            entity.Property(e => e.ExecutedOn)
+                .HasColumnType("datetime")
+                .HasColumnName("executed_on");
+            entity.Property(e => e.ReceivedOn)
+                .HasColumnType("datetime")
+                .HasColumnName("received_on");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
+            entity.Property(e => e.StepDescription)
+                .HasColumnType("text")
+                .HasColumnName("step_description");
+            entity.Property(e => e.StepName)
+                .HasMaxLength(255)
+                .HasColumnName("step_name");
+            entity.Property(e => e.Type).HasColumnType("text");
+            entity.Property(e => e.WorkflowId).HasColumnName("workflow_id");
+        });
+
+        modelBuilder.Entity<WorkflowType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("workflow_types");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Description)
+                .HasColumnType("text")
+                .HasColumnName("description");
+            entity.Property(e => e.Name)
+                .HasMaxLength(255)
+                .HasColumnName("name");
         });
 
         OnModelCreatingPartial(modelBuilder);
