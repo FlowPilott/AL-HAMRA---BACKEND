@@ -274,7 +274,7 @@ namespace WAS_Management.Controllers
                 }
                 else
                 {
-                    workflowstep.Details = jsonString;
+                    workflowstep.Actiondetails = jsonString;
                 }
                 workflowstep.ExecutedOn = DateTime.Now;
                 await _context.SaveChangesAsync();
