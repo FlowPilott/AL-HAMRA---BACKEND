@@ -7,6 +7,9 @@ using System.Net;
 using System.Text.Json;
 using WAS_Management.Data;
 using WAS_Management.Models;
+using WAS_Management.ViewModels;
+using Task = WAS_Management.Models.Task;
+using System.Collections.Generic;
 
 namespace WAS_Management.Controllers
 {
@@ -464,6 +467,38 @@ namespace WAS_Management.Controllers
             await SendModificationEmail(user);
             return true;
         }
+        [HttpPost("GetTaks")]
+        public async Task<IEnumerable<TaksVM>> GetTaks(int userid)
+        {
+            try
+            {
+                var lst = await _context.Tasks.Where(x => x.AssignedTo == userid).ToListAsync();
+                var taskslst = Mapper.MapToDtos<Task, TaksVM>(lst);
+                return taskslst;
+            }
+            catch (Exception ex)
+            {
+                return new List<TaksVM>();
+            }
+        }
+        [HttpPost("GetWorkFlow")]
+        public async Task<WorkFlowVM> GetWorkFlow(int workflowid)
+        {
+            try
+            {
+                var wf = await _context.Workflows.FindAsync(workflowid);
+                var WorkFlowVMobj = Mapper.MapToDto<Workflow, WorkFlowVM>(wf);
+                var lst = await _context.WorkflowSteps.Where(x => x.WorkflowId == workflowid).ToListAsync();
+                var WFSslst = Mapper.MapToDtos<WorkflowStep, WorkFlowStepVM>(lst);
+                WorkFlowVMobj.workFlowStepVMs = WFSslst;
+                return WorkFlowVMobj;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
         private async System.Threading.Tasks.Task SendModificationEmail(User user)
         {
             var smtpClient = new SmtpClient(_configuration["Mail:Host"])
@@ -484,6 +519,44 @@ namespace WAS_Management.Controllers
             mailMessage.To.Add(user.Email);
 
             await smtpClient.SendMailAsync(mailMessage);
+        }
+    }
+    public static class Mapper
+    {
+        public static TDto MapToDto<TEntity, TDto>(TEntity entity)
+        {
+            // Ensure you have a mapping from TEntity to TDto
+            if (entity == null) return default;
+
+            var dto = Activator.CreateInstance<TDto>();
+
+            // Get properties of TDto and TEntity
+            var dtoProperties = typeof(TDto).GetProperties();
+            var entityProperties = typeof(TEntity).GetProperties();
+
+            // Use reflection to match properties case-insensitively
+            foreach (var dtoProperty in dtoProperties)
+            {
+                // Find the corresponding entity property with case-insensitive matching
+                var entityProperty = entityProperties
+                    .FirstOrDefault(ep => string.Equals(ep.Name, dtoProperty.Name, StringComparison.OrdinalIgnoreCase));
+
+                if (entityProperty != null && dtoProperty.CanWrite)
+                {
+                    var value = entityProperty.GetValue(entity);
+                    dtoProperty.SetValue(dto, value);
+                }
+            }
+
+            return dto;
+        }
+        public static IEnumerable<TDto> MapToDtos<TEntity, TDto>(this IEnumerable<TEntity> entities)
+       where TDto : new()
+        {
+            if (entities == null)
+                return Enumerable.Empty<TDto>();
+
+            return entities.Select(entity => MapToDto<TEntity, TDto>(entity));
         }
     }
 }
