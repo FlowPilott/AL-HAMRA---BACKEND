@@ -144,7 +144,7 @@ namespace WAS_Management.Controllers
             interaction.EndDuration = endDuration;
             await _context.SaveChangesAsync();
 
-            return Ok("Form submitted successfully");
+            return Ok(interaction);
         }
 
 
