@@ -39,9 +39,11 @@ namespace WAS_Management.Controllers
             try
             {
 
-            workflow.InitiatorId = initiator_id;
+                var userid1 = await _context.Users.Where(x => x.Email == "bejoy.george@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                var userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                workflow.InitiatorId = initiator_id;
             var workflowtypeid = await _context.WorkflowTypes.Where(x => x.Name == "INTERACTION RECORDING FORM").Select(x=>x.Id).FirstOrDefaultAsync();
-            workflow.WorkflowTypeId = workflowtypeid;
+                 workflow.WorkflowTypeId = workflowtypeid;
             workflow.Status = "In Progress";
             workflow.Subject = "INTERACTION RECORDING FORM";
             workflow.ProcessOwner = initiator_id;
@@ -57,8 +59,6 @@ namespace WAS_Management.Controllers
                 step.StepName = "Review Scope and Site Requirements";
                 step.StepDescription = "Review Scope and Site Requirements";
                 step.Type = "Any";
-                var userid1 = await _context.Users.Where(x => x.Email == "bejoy.george@email.com").Select(x => x.Id).FirstOrDefaultAsync();
-                var userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
                 var data = new[]
 {
     new { Id = userid1.ToString(), Status = "Not Approved", Rights = "Edit" },
@@ -491,6 +491,9 @@ namespace WAS_Management.Controllers
                 var lst = await _context.WorkflowSteps.Where(x => x.WorkflowId == workflowid).ToListAsync();
                 var WFSslst = Mapper.MapToDtos<WorkflowStep, WorkFlowStepVM>(lst);
                 WorkFlowVMobj.workFlowStepVMs = WFSslst;
+                WorkFlowVMobj.WorkflowTypeName = (await _context.WorkflowTypes.FindAsync(WorkFlowVMobj.WorkflowTypeId)).Name;
+                WorkFlowVMobj.InitiatorName = (await _context.Users.FindAsync(WorkFlowVMobj.InitiatorId)).Username;
+
                 return WorkFlowVMobj;
             }
             catch (Exception ex)
