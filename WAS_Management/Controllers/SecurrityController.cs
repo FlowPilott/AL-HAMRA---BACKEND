@@ -45,7 +45,7 @@ namespace WAS_Management.Controllers
                         ErrorMessage = "Username not found.",
                         Data = ""
                     };
-                    //return Json(errorData);
+                    //return Json(errorDa.ta);
                     return new JsonResult(errorData);
                 }
 
@@ -61,7 +61,7 @@ namespace WAS_Management.Controllers
                     };
                     return new JsonResult(errorData);
                 }
-                var token = generateToken();
+                var token = await generateToken();
                 // Success response
                 var successData = new
                 {
