@@ -9,6 +9,7 @@
 
         public int? InitiatorId { get; set; }
         public string? InitiatorName { get; set; }
+        public string? Department { get; set; }
 
         public string? Subject { get; set; }
 

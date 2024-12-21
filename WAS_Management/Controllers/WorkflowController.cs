@@ -493,7 +493,7 @@ namespace WAS_Management.Controllers
                 WorkFlowVMobj.workFlowStepVMs = WFSslst;
                 WorkFlowVMobj.WorkflowTypeName = (await _context.WorkflowTypes.FindAsync(WorkFlowVMobj.WorkflowTypeId)).Name;
                 WorkFlowVMobj.InitiatorName = (await _context.Users.FindAsync(WorkFlowVMobj.InitiatorId)).Username;
-
+                WorkFlowVMobj.Department = (await _context.Users.FindAsync(WorkFlowVMobj.InitiatorId)).Department;
                 return WorkFlowVMobj;
             }
             catch (Exception ex)
@@ -501,7 +501,11 @@ namespace WAS_Management.Controllers
                 return null;
             }
         }
-
+        [HttpGet("GetUsers")]
+        public async Task<List<User>> GetUsers()
+        {
+            return await _context.Users.ToListAsync();
+        }
         private async System.Threading.Tasks.Task SendModificationEmail(User user)
         {
             var smtpClient = new SmtpClient(_configuration["Mail:Host"])
