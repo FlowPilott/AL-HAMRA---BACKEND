@@ -23,7 +23,7 @@ public partial class WAS_ManagementContext : DbContext
 
     public virtual DbSet<StepAction> StepActions { get; set; }
 
-    public virtual DbSet<Task> Tasks { get; set; }
+    public virtual DbSet<Models.Task> Tasks { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -227,7 +227,7 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.UnlistedContractorFee).HasPrecision(18, 2);
         });
 
-        modelBuilder.Entity<Task>(entity =>
+        modelBuilder.Entity<Models.Task>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 

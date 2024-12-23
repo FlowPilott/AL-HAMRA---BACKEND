@@ -551,7 +551,7 @@ namespace WAS_Management.Controllers
             {
                 From = new MailAddress(_configuration["Mail:From"]),
                 Subject = "Application for Modification",
-                Body = $"Dear Customer,\n\nFill out the detail on the link below http://example.com/api/forms/SubmitExternalForm/{user.Id}\n\nRegards,\nAlHamra Team",
+                Body = $"Dear Customer,\n\nFill out the detail on the link below \n\nRegards,\nAlHamra Team",
                 IsBodyHtml = false,
             };
 
