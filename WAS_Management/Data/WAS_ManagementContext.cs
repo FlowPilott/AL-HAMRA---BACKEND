@@ -23,7 +23,7 @@ public partial class WAS_ManagementContext : DbContext
 
     public virtual DbSet<StepAction> StepActions { get; set; }
 
-    public virtual DbSet<Models.Task> Tasks { get; set; }
+    public virtual DbSet<Task> Tasks { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
 
@@ -213,6 +213,7 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.Email).HasMaxLength(50);
             entity.Property(e => e.InvNuumber).HasMaxLength(255);
             entity.Property(e => e.ModificationFee).HasPrecision(18, 2);
+            entity.Property(e => e.ModificationRequest).HasColumnType("enum('Minor Work','Major Work')");
             entity.Property(e => e.Name).HasMaxLength(255);
             entity.Property(e => e.PerformedBy).HasColumnName("performed_by");
             entity.Property(e => e.PerformedOn)
@@ -221,11 +222,12 @@ public partial class WAS_ManagementContext : DbContext
                 .HasColumnName("performed_on");
             entity.Property(e => e.StepId).HasColumnName("step_id");
             entity.Property(e => e.SubCat).HasMaxLength(255);
+            entity.Property(e => e.SubCategory).HasColumnType("enum('With Charges','Without Charges')");
             entity.Property(e => e.Total).HasPrecision(18, 2);
             entity.Property(e => e.UnlistedContractorFee).HasPrecision(18, 2);
         });
 
-        modelBuilder.Entity<Models.Task>(entity =>
+        modelBuilder.Entity<Task>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 

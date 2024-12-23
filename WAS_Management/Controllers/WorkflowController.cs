@@ -290,6 +290,16 @@ namespace WAS_Management.Controllers
                     else if (workflowstep.StepName == "Review Scope2") nextstepname = "Review Scope and Fees Calculation";
                     else if (workflowstep.StepName == "Review Scope and Fees Calculation") nextstepname = "Upload the Invoice";
                     else if (workflowstep.StepName == "Upload the Invoice") nextstepname = "Confirm Payment Received";
+                  
+                    if (workflowstep.StepName == "Review Scope and Site Requirements" && stepAction.ModificationRequest == "Minor Work"
+                        && stepAction.SubCategory == "Without Charges")
+                    {
+                        // workflows.Status = "Approved";
+                        workflowstep.Status = "In Progress";
+                        await _context.SaveChangesAsync();
+                        await SendModificationEmail2("");
+                        return true;
+                    }
                     var nextstepflow = await _context.WorkflowSteps.Where(x=>x.StepName == nextstepname && x.WorkflowId == workflowstep.WorkflowId).FirstOrDefaultAsync();
                    // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(nextstepflow.AssignedTo);
                     var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(nextstepflow.AssignedTo);
@@ -524,6 +534,27 @@ namespace WAS_Management.Controllers
             };
 
             mailMessage.To.Add(user.Email);
+
+            await smtpClient.SendMailAsync(mailMessage);
+        }
+        private async System.Threading.Tasks.Task SendModificationEmail2(string email)
+        {
+            var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+            {
+                Port = int.Parse(_configuration["Mail:Port"]),
+                Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                EnableSsl = true,
+            };
+
+            var mailMessage = new MailMessage
+            {
+                From = new MailAddress(_configuration["Mail:From"]),
+                Subject = "Application for Modification",
+                Body = $"Dear Customer,\n\nFill out the detail on the link below http://example.com/api/forms/SubmitExternalForm/{user.Id}\n\nRegards,\nAlHamra Team",
+                IsBodyHtml = false,
+            };
+
+            mailMessage.To.Add(email);
 
             await smtpClient.SendMailAsync(mailMessage);
         }
