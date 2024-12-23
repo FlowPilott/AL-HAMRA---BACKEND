@@ -26,10 +26,11 @@ namespace WAS_Management.Controllers
             _configuration = configuration;
         }
         [HttpPost("CreateWorkFlow")]
-        public async Task<bool> CreateWorkFlow(int initiator_id, string workflowname,string jsonInfo) { 
+        public async Task<bool> CreateWorkFlow(int initiator_id, string workflowname, string jsonInfo)
+        {
             if (workflowname == "INTERACTION RECORDING FORM")
             {
-               return await CreateInteractionWorkflow(initiator_id, workflowname, jsonInfo);
+                return await CreateInteractionWorkflow(initiator_id, workflowname, jsonInfo);
             }
             return true;
         }
@@ -42,17 +43,17 @@ namespace WAS_Management.Controllers
                 var userid1 = await _context.Users.Where(x => x.Email == "bejoy.george@email.com").Select(x => x.Id).FirstOrDefaultAsync();
                 var userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
                 workflow.InitiatorId = initiator_id;
-            var workflowtypeid = await _context.WorkflowTypes.Where(x => x.Name == "INTERACTION RECORDING FORM").Select(x=>x.Id).FirstOrDefaultAsync();
-                 workflow.WorkflowTypeId = workflowtypeid;
-            workflow.Status = "In Progress";
-            workflow.Subject = "INTERACTION RECORDING FORM";
-            workflow.ProcessOwner = initiator_id;
-            workflow.StartedOn = DateTime.Now;
-            workflow.Progress = "Active";
-           // string jsonString = JsonSerializer.Serialize(workflow);
-            workflow.Details = jsonInfo;
-            await _context.AddAsync(workflow);
-            await _context.SaveChangesAsync();
+                var workflowtypeid = await _context.WorkflowTypes.Where(x => x.Name == "INTERACTION RECORDING FORM").Select(x => x.Id).FirstOrDefaultAsync();
+                workflow.WorkflowTypeId = workflowtypeid;
+                workflow.Status = "In Progress";
+                workflow.Subject = "INTERACTION RECORDING FORM";
+                workflow.ProcessOwner = initiator_id;
+                workflow.StartedOn = DateTime.Now;
+                workflow.Progress = "Active";
+                // string jsonString = JsonSerializer.Serialize(workflow);
+                workflow.Details = jsonInfo;
+                await _context.AddAsync(workflow);
+                await _context.SaveChangesAsync();
                 #region workflow step 
                 WorkflowStep step = new WorkflowStep();
                 step.WorkflowId = workflow.Id;
@@ -77,12 +78,12 @@ namespace WAS_Management.Controllers
                 step2.StepName = "Review Scope";
                 step2.StepDescription = "Review Scope";
                 step2.Type = "All";
-                 userid1 = await _context.Users.Where(x => x.Email == "abubaker.yafai@email.com").Select(x => x.Id).FirstOrDefaultAsync();
-                 //userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                userid1 = await _context.Users.Where(x => x.Email == "abubaker.yafai@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                //userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
                 var data2 = new[]
 {
     new { Id = userid1.ToString(), Status = "Not Approved", Rights = "Edit" }
-  
+
 };
                 string jsonStringUsers2 = JsonSerializer.Serialize(data2, new JsonSerializerOptions { WriteIndented = true });
                 step2.AssignedTo = jsonStringUsers2;
@@ -184,7 +185,7 @@ namespace WAS_Management.Controllers
         [HttpPost("CreateWorkFlowStepAction")]
         public async Task<bool> CreateWorkFlowStepAction(int WorkflowStepId, StepAction stepAction, [FromForm] IFormCollection formData)
         {
-           stepAction.StepId = WorkflowStepId;
+            stepAction.StepId = WorkflowStepId;
             stepAction.PerformedOn = DateTime.Now;
             await _context.AddAsync(stepAction);
             await _context.SaveChangesAsync();
@@ -214,10 +215,10 @@ namespace WAS_Management.Controllers
                             await file.CopyToAsync(stream);
                         }
 
-                       WorkflowDocument workflowDocument = new WorkflowDocument();
+                        WorkflowDocument workflowDocument = new WorkflowDocument();
                         workflowDocument.StepId = stepAction.Id;
                         workflowDocument.WorkflowId = WorkflowStepId;
-                        workflowDocument.DocumentPath = filePath;   
+                        workflowDocument.DocumentPath = filePath;
                         workflowDocument.DocumentName = file.Name;
                         workflowDocument.UploadedOn = DateTime.Now;
                         await _context.AddAsync(workflowDocument);
@@ -230,7 +231,7 @@ namespace WAS_Management.Controllers
                     }
                 }
             }
-           
+
             // Find the workflow step
             var workflowstep = await _context.WorkflowSteps.FindAsync(WorkflowStepId);
             if (workflowstep != null)
@@ -249,7 +250,7 @@ namespace WAS_Management.Controllers
                     workflowstep.Actiondetails = jsonString;
                     var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(workflowstep.AssignedTo);
 
-                   // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
+                    // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
                     bool all = true;
                     foreach (var item in deserializedData)
                     {
@@ -258,16 +259,16 @@ namespace WAS_Management.Controllers
                             item["Status"] = "Approved"; // Modify the property
                             item["Rights"] = "Edit";    // Modify another property
                         }
-                        if(item["Rights"].ToString() == "Edit" && item["Status"].ToString() != "Approved")
+                        if (item["Rights"].ToString() == "Edit" && item["Status"].ToString() != "Approved")
                         {
                             all = false;
                         }
                     }
-                    if(workflowstep.Type == "Any")
+                    if (workflowstep.Type == "Any")
                     {
                         workflowstep.Status = "Approved";
                     }
-                    else if(all == true)
+                    else if (all == true)
                     {
                         workflowstep.Status = "Approved";
                     }
@@ -281,7 +282,7 @@ namespace WAS_Management.Controllers
                 }
                 workflowstep.ExecutedOn = DateTime.Now;
                 await _context.SaveChangesAsync();
-                if(workflowstep.Status == "Approved" && stepAction.ActionType == "Submit")
+                if (workflowstep.Status == "Approved" && stepAction.ActionType == "Submit")
                 {
                     var workflows = await _context.Workflows.FindAsync(workflowstep.WorkflowId);
                     string nextstepname = string.Empty;
@@ -308,7 +309,7 @@ namespace WAS_Management.Controllers
                     {
                         if (item["Rights"].ToString() == "Edit")
                         {
-                            await CreateTask(nextstepflow.WorkflowId.Value, nextstepflow.Id.ToString(), "Workflow",Convert.ToInt32( item["Id"].ToString()), "Modification Request", workflows.InitiatorId.Value);
+                            await CreateTask(nextstepflow.WorkflowId.Value, nextstepflow.Id.ToString(), "Workflow", Convert.ToInt32(item["Id"].ToString()), "Modification Request", workflows.InitiatorId.Value);
                         }
                     }
                     nextstepflow.Status = "In Progress";
@@ -333,13 +334,13 @@ namespace WAS_Management.Controllers
             stepAction.PerformedOn = DateTime.Now;
             await _context.AddAsync(stepAction);
             await _context.SaveChangesAsync();
-          
+
             // Find the workflow step
             var workflowstep = await _context.WorkflowSteps.FindAsync(WorkflowStepId);
             if (workflowstep != null)
             {
                 // Serialize the combined object to JSON
-               // string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
+                // string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
                 var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
                 deserializedData.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI" });
                 var data = new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI" };
@@ -347,7 +348,7 @@ namespace WAS_Management.Controllers
                 string jsonString2 = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
                 workflowstep.AssignedTo = jsonString;
                 workflowstep.Details = jsonString2;
-               // workflowstep.ExecutedOn = DateTime.Now;
+                // workflowstep.ExecutedOn = DateTime.Now;
                 await _context.SaveChangesAsync();
                 var workflows = await _context.Workflows.FindAsync(workflowstep.WorkflowId);
                 await CreateTask(workflowstep.WorkflowId.Value, WorkflowStepId.ToString(), "RFI", stepAction.AssignTo.Value, "Modification Request", workflows.InitiatorId.Value);
@@ -382,13 +383,13 @@ namespace WAS_Management.Controllers
                         item["Rights"] = "View";
                     }
                 }
-               
+
                 // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
-                
+
                 var data = new Dictionary<string, object> {
-                    { "Id" , stepAction.AssignTo.ToString() },{ "Status" , "Not Approved" },{ "Rights" , "Edit" } 
+                    { "Id" , stepAction.AssignTo.ToString() },{ "Status" , "Not Approved" },{ "Rights" , "Edit" }
                 };
-                
+
                 deserializedData.Add(data);
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
                 string jsonString2 = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
@@ -441,11 +442,11 @@ namespace WAS_Management.Controllers
                 {
                     if (item["Rights"].ToString() == "Edit")
                     {
-                        await CreateTask(workflowstep.WorkflowId.Value, prevstepflow.Id.ToString(), "Return Step",Convert.ToInt32( item["Id"].ToString()), "Modification Request", workflows.InitiatorId.Value);
+                        await CreateTask(workflowstep.WorkflowId.Value, prevstepflow.Id.ToString(), "Return Step", Convert.ToInt32(item["Id"].ToString()), "Modification Request", workflows.InitiatorId.Value);
                         item["Status"] = "Not Approved";
                     }
                 }
-                
+
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
                 workflowstep.Details = jsonString;
                 // workflowstep.ExecutedOn = DateTime.Now;
@@ -460,20 +461,20 @@ namespace WAS_Management.Controllers
                 return false;
             }
         }
-        private async Task<bool> CreateTask(int WorkflowId,string WorkflowStepId, string type,int assignto,string template,int initiatorid)
+        private async Task<bool> CreateTask(int WorkflowId, string WorkflowStepId, string type, int assignto, string template, int initiatorid)
         {
-                var user = await _context.Users.FindAsync(initiatorid);
-                Models.Task task = new Models.Task();
-                task.WorkflowId = WorkflowId;
-                task.StepId = Convert.ToInt32( WorkflowStepId);
-                task.TaskType = type;
-                task.Status = "In Progress";
-                task.AssignedTo = assignto;
-                task.DueDate = DateTime.Now.AddDays(2);
-                task.Template = template;
-                task.Department = user.Department;
-                await _context.AddAsync(task);
-                await _context.SaveChangesAsync();
+            var user = await _context.Users.FindAsync(initiatorid);
+            Models.Task task = new Models.Task();
+            task.WorkflowId = WorkflowId;
+            task.StepId = Convert.ToInt32(WorkflowStepId);
+            task.TaskType = type;
+            task.Status = "In Progress";
+            task.AssignedTo = assignto;
+            task.DueDate = DateTime.Now.AddDays(2);
+            task.Template = template;
+            task.Department = user.Department;
+            await _context.AddAsync(task);
+            await _context.SaveChangesAsync();
             await SendModificationEmail(user);
             return true;
         }

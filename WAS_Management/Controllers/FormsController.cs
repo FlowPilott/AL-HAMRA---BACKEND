@@ -10,6 +10,7 @@ using System.Net.Mail;
 using System.Net;
 using WAS_Management.Models;
 using WAS_Management.Data;
+using Newtonsoft.Json;
 
 
 namespace WAS_Management.Controllers
@@ -49,7 +50,7 @@ namespace WAS_Management.Controllers
             _context.Interactions.Add(interaction);
             await _context.SaveChangesAsync();
 
-            if (interaction.PurposeOfInteraction == "Application for modification")
+            if (interaction.PurposeOfInteraction == "Application for Modification")
             {
                 await SendModificationEmail(interaction);
             }
@@ -78,6 +79,7 @@ namespace WAS_Management.Controllers
                 endDuration = end;
             }
 
+            // Validate duration difference
             if (startDuration.HasValue && endDuration.HasValue)
             {
                 var durationDiff = (endDuration.Value - startDuration.Value).Days;
@@ -95,25 +97,21 @@ namespace WAS_Management.Controllers
                 {
                     if (file.Length > 0)
                     {
-                        // Define a directory to save the uploaded files
-                        //var uploadsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
                         var uploadsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
                         if (!Directory.Exists(uploadsDirectory))
                         {
                             Directory.CreateDirectory(uploadsDirectory);
                         }
 
-                        // Create a unique file name to avoid conflicts
                         var uniqueFileName = Path.GetRandomFileName() + Path.GetExtension(file.FileName);
                         var filePath = Path.Combine(uploadsDirectory, uniqueFileName);
 
-                        // Save the file to the server
                         using (var stream = new FileStream(filePath, FileMode.Create))
                         {
                             await file.CopyToAsync(stream);
                         }
 
-                        // Save the file path or file metadata in the database
+                        // Map each file to the correct column in the database
                         switch (file.Name)
                         {
                             case "contractAgreement":
@@ -144,7 +142,32 @@ namespace WAS_Management.Controllers
             interaction.EndDuration = endDuration;
             await _context.SaveChangesAsync();
 
-            return Ok(interaction);
+            // --------------------------------------------------------------------
+            // Gather all form data into a dictionary (key/value), then convert to JSON
+            // --------------------------------------------------------------------
+            var formDataDictionary = new Dictionary<string, string>();
+            foreach (var key in formData.Keys)
+            {
+                formDataDictionary[key] = formData[key];
+            }
+            string jsonInfo = JsonConvert.SerializeObject(formDataDictionary);
+
+            // --------------------------------------------------------------------
+            // Call your CreateInteractionWorkflow after saving everything
+            // (You’ll need to figure out how to get or define 'initiator_id' and 'workflowname')
+            // --------------------------------------------------------------------
+            int initiator_id = 1;
+            string workflowname = /* your logic to define the workflow name */ "INTERACTION RECORDING FORM";
+
+            // Return or store the result from the workflow as needed
+            var workflowResult = await new WorkflowController(_context, _configuration).CreateWorkFlow(initiator_id, workflowname, jsonInfo);
+
+            // You could return the workflow result directly or combine it with your interaction
+            return Ok(new
+            {
+                Interaction = interaction,
+                WorkflowResult = workflowResult
+            });
         }
 
 
@@ -161,7 +184,7 @@ namespace WAS_Management.Controllers
             {
                 From = new MailAddress(_configuration["Mail:From"]),
                 Subject = "Application for Modification",
-                Body = $"Dear Customer,\n\nFill out the detail on the link below http://example.com/api/forms/SubmitExternalForm/{interaction.Id}\n\nRegards,\nAlHamra Team",
+                Body = $"Dear Customer,\n\nFill out the detail on the link below {_configuration["AppBaseURL:URL"]}/Interaction/form/ExternalSubmissionForm/{interaction.Id}\n\nRegards,\nAlHamra Team",
                 IsBodyHtml = false,
             };
 
