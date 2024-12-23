@@ -301,7 +301,7 @@ namespace WAS_Management.Controllers
                         await SendModificationEmail2("");
                         return true;
                     }
-                    var nextstepflow = await _context.WorkflowSteps.Where(x=>x.StepName == nextstepname && x.WorkflowId == workflowstep.WorkflowId).FirstOrDefaultAsync();
+                    var nextstepflow = await _context.WorkflowSteps.Where(x => x.StepName == nextstepname && x.WorkflowId == workflowstep.WorkflowId).FirstOrDefaultAsync();
                    // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(nextstepflow.AssignedTo);
                     var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(nextstepflow.AssignedTo);
 
