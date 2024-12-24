@@ -183,8 +183,9 @@ namespace WAS_Management.Controllers
             }
         }
         [HttpPost("CreateWorkFlowStepAction")]
-        public async Task<bool> CreateWorkFlowStepAction(int WorkflowStepId, StepAction stepAction, [FromForm] IFormCollection formData)
+        public async Task<bool> CreateWorkFlowStepAction(int WorkflowStepId, [FromForm] IFormCollection formData)
         {
+            var stepAction = await this.ConvertformDataToStepAction(formData);
             stepAction.StepId = WorkflowStepId;
             stepAction.PerformedOn = DateTime.Now;
             await _context.AddAsync(stepAction);
@@ -559,6 +560,46 @@ namespace WAS_Management.Controllers
 
             await smtpClient.SendMailAsync(mailMessage);
         }
+        private async Task<StepAction> ConvertformDataToStepAction(IFormCollection formData)
+        {
+            StepAction stepAction = new StepAction();
+            try
+            {
+                string GetStringValue(string key) => formData.ContainsKey(key) ? formData[key].ToString() : null;
+
+                int? GetNullableIntValue(string key) => int.TryParse(GetStringValue(key), out int value) ? value : null;
+
+                decimal? GetNullableDecimalValue(string key) => decimal.TryParse(GetStringValue(key), out decimal value) ? value : null;
+
+                DateTime? GetNullableDateTimeValue(string key) => DateTime.TryParse(GetStringValue(key), out DateTime value) ? value : null;
+
+                stepAction.StepId = GetNullableIntValue("StepId");
+                stepAction.ActionType = GetStringValue("ActionType");
+                stepAction.PerformedBy = GetNullableIntValue("PerformedBy");
+                stepAction.PerformedOn = GetNullableDateTimeValue("PerformedOn");
+                stepAction.Comments = GetStringValue("Comments");
+                stepAction.Category = GetStringValue("Category");
+                stepAction.SubCat = GetStringValue("SubCat");
+                stepAction.ModificationFee = GetNullableDecimalValue("ModificationFee");
+                stepAction.UnlistedContractorFee = GetNullableDecimalValue("UnlistedContractorFee");
+                stepAction.BuiltupExtensionFee = GetNullableDecimalValue("BuiltupExtensionFee");
+                stepAction.Total = GetNullableDecimalValue("Total");
+                stepAction.InvNuumber = GetStringValue("InvNuumber");
+                stepAction.Name = GetStringValue("Name");
+                stepAction.Email = GetStringValue("Email");
+                stepAction.ContactNumber = GetStringValue("ContactNumber");
+                stepAction.AssignTo = GetNullableIntValue("AssignTo");
+                stepAction.SubCategory = GetStringValue("SubCategory");
+                stepAction.ModificationRequest = GetStringValue("ModificationRequest");
+            }
+            catch (Exception ex)
+            {
+                
+            }
+
+            return stepAction;
+        }
+
     }
     public static class Mapper
     {
