@@ -573,8 +573,8 @@ namespace WAS_Management.Controllers
 
                 DateTime? GetNullableDateTimeValue(string key) => DateTime.TryParse(GetStringValue(key), out DateTime value) ? value : null;
 
-                stepAction.StepId = GetNullableIntValue("StepId");
-                stepAction.ActionType = GetStringValue("ActionType");
+                stepAction.StepId = Convert.ToInt32(GetStringValue("stepId"));
+                stepAction.ActionType = GetStringValue("actionType");
                 stepAction.PerformedBy = GetNullableIntValue("PerformedBy");
                 stepAction.PerformedOn = GetNullableDateTimeValue("PerformedOn");
                 stepAction.Comments = GetStringValue("Comments");
