@@ -39,7 +39,7 @@ public partial class StepAction
 
     public int? AssignTo { get; set; }
 
-    public string? SubCategory { get; set; }
-
     public string? ModificationRequest { get; set; }
+
+    public string? SubCategory { get; set; }
 }
