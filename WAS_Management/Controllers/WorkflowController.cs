@@ -183,156 +183,198 @@ namespace WAS_Management.Controllers
             }
         }
         [HttpPost("CreateWorkFlowStepAction")]
-        public async Task<bool> CreateWorkFlowStepAction(int WorkflowStepId, [FromForm] IFormCollection formData)
+        public async Task<JsonResult> CreateWorkFlowStepAction(int WorkflowStepId, [FromForm] IFormCollection formData)
         {
-            var stepAction = await this.ConvertformDataToStepAction(formData);
-            if (stepAction != null)
+            try
             {
-                stepAction.StepId = WorkflowStepId;
-                stepAction.PerformedOn = DateTime.Now;
-                await _context.AddAsync(stepAction);
-                await _context.SaveChangesAsync();
-                var pathData = new List<dynamic>();
-                var files = formData.Files;
-                if (files != null && files.Count > 0)
+                var stepAction = await this.ConvertformDataToStepAction(formData);
+                if (stepAction != null)
                 {
-                    foreach (var file in files)
+                    stepAction.StepId = WorkflowStepId;
+                    stepAction.PerformedOn = DateTime.Now;
+                    await _context.AddAsync(stepAction);
+                    await _context.SaveChangesAsync();
+                    var pathData = new List<dynamic>();
+                    var files = formData.Files;
+                    if (files != null && files.Count > 0)
                     {
-                        if (file.Length > 0)
+                        foreach (var file in files)
                         {
-                            // Define a directory to save the uploaded files
-                            //var uploadsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-                            var uploadsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
-                            if (!Directory.Exists(uploadsDirectory))
+                            if (file.Length > 0)
                             {
-                                Directory.CreateDirectory(uploadsDirectory);
+                                // Define a directory to save the uploaded files
+                                //var uploadsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
+                                var uploadsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+                                if (!Directory.Exists(uploadsDirectory))
+                                {
+                                    Directory.CreateDirectory(uploadsDirectory);
+                                }
+
+                                // Create a unique file name to avoid conflicts
+                                var uniqueFileName = Path.GetRandomFileName() + Path.GetExtension(file.FileName);
+                                var filePath = Path.Combine(uploadsDirectory, uniqueFileName);
+
+                                // Save the file to the server
+                                using (var stream = new FileStream(filePath, FileMode.Create))
+                                {
+                                    await file.CopyToAsync(stream);
+                                }
+
+                                WorkflowDocument workflowDocument = new WorkflowDocument();
+                                workflowDocument.StepId = stepAction.Id;
+                                workflowDocument.WorkflowId = WorkflowStepId;
+                                workflowDocument.DocumentPath = filePath;
+                                workflowDocument.DocumentName = file.Name;
+                                workflowDocument.UploadedOn = DateTime.Now;
+                                await _context.AddAsync(workflowDocument);
+                                await _context.SaveChangesAsync();
+                                pathData.Add(new
+                                {
+                                    Name = file.Name,
+                                    Path = filePath
+                                });
                             }
-
-                            // Create a unique file name to avoid conflicts
-                            var uniqueFileName = Path.GetRandomFileName() + Path.GetExtension(file.FileName);
-                            var filePath = Path.Combine(uploadsDirectory, uniqueFileName);
-
-                            // Save the file to the server
-                            using (var stream = new FileStream(filePath, FileMode.Create))
-                            {
-                                await file.CopyToAsync(stream);
-                            }
-
-                            WorkflowDocument workflowDocument = new WorkflowDocument();
-                            workflowDocument.StepId = stepAction.Id;
-                            workflowDocument.WorkflowId = WorkflowStepId;
-                            workflowDocument.DocumentPath = filePath;
-                            workflowDocument.DocumentName = file.Name;
-                            workflowDocument.UploadedOn = DateTime.Now;
-                            await _context.AddAsync(workflowDocument);
-                            await _context.SaveChangesAsync();
-                            pathData.Add(new
-                            {
-                                Name = file.Name,
-                                Path = filePath
-                            });
                         }
                     }
-                }
 
-                // Find the workflow step
-                var workflowstep = await _context.WorkflowSteps.FindAsync(WorkflowStepId);
-                if (workflowstep != null)
-                {
-                    // Create a combined JSON object with stepAction and pathData
-                    var combinedData = new
+                    // Find the workflow step
+                    var workflowstep = await _context.WorkflowSteps.FindAsync(WorkflowStepId);
+                    if (workflowstep != null)
                     {
-                        StepAction = stepAction,
-                        Files = pathData // Embed pathData (list of files)
-                    };
-
-                    // Serialize the combined object to JSON
-                    string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
-                    if (stepAction.ActionType == "Submit")
-                    {
-                        workflowstep.Actiondetails = jsonString;
-                        var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(workflowstep.AssignedTo);
-
-                        // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
-                        bool all = true;
-                        foreach (var item in deserializedData)
+                        // Create a combined JSON object with stepAction and pathData
+                        var combinedData = new
                         {
-                            if (item["Id"].ToString() == stepAction.PerformedBy.ToString())
+                            StepAction = stepAction,
+                            Files = pathData // Embed pathData (list of files)
+                        };
+
+                        // Serialize the combined object to JSON
+                        string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
+                        if (stepAction.ActionType == "Submit")
+                        {
+                            workflowstep.Actiondetails = jsonString;
+                            var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(workflowstep.AssignedTo);
+
+                            // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
+                            bool all = true;
+                            foreach (var item in deserializedData)
                             {
-                                item["Status"] = "Approved"; // Modify the property
-                                item["Rights"] = "Edit";    // Modify another property
+                                if (item["Id"].ToString() == stepAction.PerformedBy.ToString())
+                                {
+                                    item["Status"] = "Approved"; // Modify the property
+                                    item["Rights"] = "Edit";    // Modify another property
+                                }
+                                if (item["Rights"].ToString() == "Edit" && item["Status"].ToString() != "Approved")
+                                {
+                                    all = false;
+                                }
                             }
-                            if (item["Rights"].ToString() == "Edit" && item["Status"].ToString() != "Approved")
+                            if (workflowstep.Type == "Any")
                             {
-                                all = false;
+                                workflowstep.Status = "Approved";
+                            }
+                            else if (all == true)
+                            {
+                                workflowstep.Status = "Approved";
+                            }
+                            string jsonString2 = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
+                            workflowstep.AssignedTo = jsonString2;
+
+                        }
+                        else
+                        {
+                            workflowstep.Actiondetails = jsonString;
+                        }
+                        workflowstep.ExecutedOn = DateTime.Now;
+                        await _context.SaveChangesAsync();
+                        if (workflowstep.Status == "Approved" && stepAction.ActionType == "Submit")
+                        {
+                            var workflows = await _context.Workflows.FindAsync(workflowstep.WorkflowId);
+                            string nextstepname = string.Empty;
+                            if (workflowstep.StepName == "Review Scope and Site Requirements") nextstepname = "Review Scope";
+                            else if (workflowstep.StepName == "Review Scope") nextstepname = "Review Scope2";
+                            else if (workflowstep.StepName == "Review Scope2") nextstepname = "Review Scope and Fees Calculation";
+                            else if (workflowstep.StepName == "Review Scope and Fees Calculation") nextstepname = "Upload the Invoice";
+                            else if (workflowstep.StepName == "Upload the Invoice") nextstepname = "Confirm Payment Received";
+
+                            if (workflowstep.StepName == "Review Scope and Site Requirements" && stepAction.ModificationRequest == "Minor Work"
+                                && stepAction.SubCategory == "Without Charges")
+                            {
+                                // workflows.Status = "Approved";
+                                workflowstep.Status = "In Progress";
+                                await _context.SaveChangesAsync();
+                                await SendModificationEmail2("");
+                                var successData = new
+                                {
+                                    Result = "Success",
+                                    ErrorCode = "200",
+                                    ErrorMessage = "",
+                                    Data = true,
+                                };
+                                return new JsonResult(successData);
+                            }
+                            var nextstepflow = await _context.WorkflowSteps.Where(x => x.StepName == nextstepname && x.WorkflowId == workflowstep.WorkflowId).FirstOrDefaultAsync();
+                            // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(nextstepflow.AssignedTo);
+                            var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(nextstepflow.AssignedTo);
+
+                            foreach (var item in deserializedData)
+                            {
+                                if (item["Rights"].ToString() == "Edit")
+                                {
+                                    await CreateTask(nextstepflow.WorkflowId.Value, nextstepflow.Id.ToString(), "Workflow", Convert.ToInt32(item["Id"].ToString()), "Modification Request", workflows.InitiatorId.Value);
+                                }
+                            }
+                            nextstepflow.Status = "In Progress";
+                            await _context.SaveChangesAsync();
+                            if (workflowstep.StepName == "Confirm Payment Received")
+                            {
+                                workflows.Status = "Approved";
+                                await _context.SaveChangesAsync();
                             }
                         }
-                        if (workflowstep.Type == "Any")
+                        var Data = new
                         {
-                            workflowstep.Status = "Approved";
-                        }
-                        else if (all == true)
-                        {
-                            workflowstep.Status = "Approved";
-                        }
-                        string jsonString2 = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
-                        workflowstep.AssignedTo = jsonString2;
-
+                            Result = "Success",
+                            ErrorCode = "200",
+                            ErrorMessage = "",
+                            Data = true,
+                        };
+                        return new JsonResult(Data);
                     }
                     else
                     {
-                        workflowstep.Actiondetails = jsonString;
+                        var successData = new
+                        {
+                            Result = "workflowstep is not found",
+                            ErrorCode = "404",
+                            ErrorMessage = "",
+                            Data = false,
+                        };
+                        return new JsonResult(successData);
                     }
-                    workflowstep.ExecutedOn = DateTime.Now;
-                    await _context.SaveChangesAsync();
-                    if (workflowstep.Status == "Approved" && stepAction.ActionType == "Submit")
-                    {
-                        var workflows = await _context.Workflows.FindAsync(workflowstep.WorkflowId);
-                        string nextstepname = string.Empty;
-                        if (workflowstep.StepName == "Review Scope and Site Requirements") nextstepname = "Review Scope";
-                        else if (workflowstep.StepName == "Review Scope") nextstepname = "Review Scope2";
-                        else if (workflowstep.StepName == "Review Scope2") nextstepname = "Review Scope and Fees Calculation";
-                        else if (workflowstep.StepName == "Review Scope and Fees Calculation") nextstepname = "Upload the Invoice";
-                        else if (workflowstep.StepName == "Upload the Invoice") nextstepname = "Confirm Payment Received";
-
-                        if (workflowstep.StepName == "Review Scope and Site Requirements" && stepAction.ModificationRequest == "Minor Work"
-                            && stepAction.SubCategory == "Without Charges")
-                        {
-                            // workflows.Status = "Approved";
-                            workflowstep.Status = "In Progress";
-                            await _context.SaveChangesAsync();
-                            await SendModificationEmail2("");
-                            return true;
-                        }
-                        var nextstepflow = await _context.WorkflowSteps.Where(x => x.StepName == nextstepname && x.WorkflowId == workflowstep.WorkflowId).FirstOrDefaultAsync();
-                        // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(nextstepflow.AssignedTo);
-                        var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(nextstepflow.AssignedTo);
-
-                        foreach (var item in deserializedData)
-                        {
-                            if (item["Rights"].ToString() == "Edit")
-                            {
-                                await CreateTask(nextstepflow.WorkflowId.Value, nextstepflow.Id.ToString(), "Workflow", Convert.ToInt32(item["Id"].ToString()), "Modification Request", workflows.InitiatorId.Value);
-                            }
-                        }
-                        nextstepflow.Status = "In Progress";
-                        await _context.SaveChangesAsync();
-                        if (workflowstep.StepName == "Confirm Payment Received")
-                        {
-                            workflows.Status = "Approved";
-                            await _context.SaveChangesAsync();
-                        }
-                    }
-                    return true;
                 }
                 else
                 {
-                    return false;
+                    var successData = new
+                    {
+                        Result = "Object Conversion Error",
+                        ErrorCode = "500",
+                        ErrorMessage = "",
+                        Data = false,
+                    };
+                    return new JsonResult(successData);
                 }
             }
-            else
+            catch (Exception ex)
             {
-                return false;
+                var successData = new
+                {
+                    Result = "Exception Occured",
+                    ErrorCode = "200",
+                    ErrorMessage = ex.Message,
+                    Data = ex,
+                };
+                return new JsonResult(successData);
             }
         }
         [HttpPost("CreateWorkFlowStepActionRFI")]

@@ -87,7 +87,8 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-// Middleware to handle CORS issues
+app.UseMiddleware<ExceptionHandlingMiddleware>();
+//// Middleware to handle CORS issues
 app.Use(async (context, next) =>
 {
     context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
