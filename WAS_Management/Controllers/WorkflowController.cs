@@ -588,7 +588,7 @@ namespace WAS_Management.Controllers
                 stepAction.Name = GetStringValue("Name");
                 stepAction.Email = GetStringValue("Email");
                 stepAction.ContactNumber = GetStringValue("ContactNumber");
-                stepAction.AssignTo = GetNullableIntValue("AssignTo");
+                stepAction.AssignTo = GetStringValue("AssignTo") != null ? Convert.ToInt32(GetStringValue("AssignTo")) : 0;
                 stepAction.SubCategory = GetStringValue("SubCategory");
                 stepAction.ModificationRequest = GetStringValue("ModificationRequest");
             }
