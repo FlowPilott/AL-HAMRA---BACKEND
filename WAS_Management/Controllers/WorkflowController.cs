@@ -440,7 +440,7 @@ namespace WAS_Management.Controllers
                 var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(workflowstep.AssignedTo);
                 foreach (var item in deserializedData)
                 {
-                    if (item["Rights"] == "Edit" && item["Id"].ToString() == stepAction.PerformedBy.ToString())
+                    if (item["Rights"].ToString() == "Edit" && item["Id"].ToString() == stepAction.PerformedBy.ToString())
                     {
                         item["Status"] = "Not Approved";
                         item["Rights"] = "View";
