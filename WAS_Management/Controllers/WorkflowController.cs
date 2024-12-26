@@ -367,14 +367,15 @@ namespace WAS_Management.Controllers
             }
             catch (Exception ex)
             {
-                var successData = new
+                var errorData = new
                 {
-                    Result = "Exception Occured",
-                    ErrorCode = "200",
+                    Result = "Exception Occurred",
+                    ErrorCode = "500",
                     ErrorMessage = ex.Message,
-                    Data = ex,
+                    StackTrace = ex.StackTrace, // Optional, remove if not needed
+                    InnerException = ex.InnerException?.Message // Optional, remove if not needed
                 };
-                return new JsonResult(successData);
+                return new JsonResult(errorData);
             }
         }
         [HttpPost("CreateWorkFlowStepActionRFI")]
