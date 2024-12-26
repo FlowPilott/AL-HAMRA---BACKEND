@@ -336,6 +336,12 @@ namespace WAS_Management.Controllers
                             {
                                 workflows.Status = "Approved";
                                 await _context.SaveChangesAsync();
+                                var tasklst = await _context.Tasks.Where(x=>x.WorkflowId  == workflows.Id).ToListAsync();
+                                foreach (var task in tasklst)
+                                {
+                                    task.Status = "Approved";
+                                    await _context.SaveChangesAsync();
+                                }
                             }
                         }
                         var Data = new
