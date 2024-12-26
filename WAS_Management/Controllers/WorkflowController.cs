@@ -313,8 +313,12 @@ namespace WAS_Management.Controllers
                                 };
                                 return new JsonResult(successData);
                             }
+                           
                             var nextstepflow = await _context.WorkflowSteps.Where(x => x.StepName == nextstepname && x.WorkflowId == workflowstep.WorkflowId).FirstOrDefaultAsync();
                             // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(nextstepflow.AssignedTo);
+                            if (nextstepflow != null)
+                            {
+                            
                             var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(nextstepflow.AssignedTo);
 
                             foreach (var item in deserializedData)
@@ -324,8 +328,10 @@ namespace WAS_Management.Controllers
                                     await CreateTask(nextstepflow.WorkflowId.Value, nextstepflow.Id.ToString(), "Workflow", Convert.ToInt32(item["Id"].ToString()), "Modification Request", workflows.InitiatorId.Value);
                                 }
                             }
+                            
                             nextstepflow.Status = "In Progress";
                             await _context.SaveChangesAsync();
+                            }
                             if (workflowstep.StepName == "Confirm Payment Received")
                             {
                                 workflows.Status = "Approved";
