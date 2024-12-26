@@ -406,7 +406,7 @@ namespace WAS_Management.Controllers
                 // string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
                 var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
                 deserializedData.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI" });
-                var data = new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI" };
+                var data = new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI", Comment = stepAction.Comments , RequestedBy = stepAction.PerformedBy.ToString() };
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
                 string jsonString2 = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
                 workflowstep.AssignedTo = jsonString;
