@@ -480,7 +480,7 @@ namespace WAS_Management.Controllers
 
             // Find the workflow step
             var workflowstep = await _context.WorkflowSteps.FindAsync(WorkflowStepId);
-            if (workflowstep != null)
+                if (workflowstep != null)
             {
                 var workflows = await _context.Workflows.FindAsync(workflowstep.WorkflowId);
                 // Serialize the combined object to JSON
@@ -506,6 +506,8 @@ namespace WAS_Management.Controllers
                     if (item["Rights"].ToString() == "Edit")
                     {
                         await CreateTask(workflowstep.WorkflowId.Value, prevstepflow.Id.ToString(), "Return Step", Convert.ToInt32(item["Id"].ToString()), "Modification Request", workflows.InitiatorId.Value);
+                        prevstepflow.Status = "In Progress";
+                        await _context.SaveChangesAsync();
                         item["Status"] = "Not Approved";
                     }
                 }
@@ -513,6 +515,7 @@ namespace WAS_Management.Controllers
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
                 workflowstep.Details = jsonString;
                 // workflowstep.ExecutedOn = DateTime.Now;
+                workflowstep.Status = "Not Started";
                 await _context.SaveChangesAsync();
 
                 //await CreateTask(workflowstep.WorkflowId.Value, WorkflowStepId.ToString(), "RFI", stepAction.AssignTo.Value, "Modification Request", workflows.InitiatorId.Value);
