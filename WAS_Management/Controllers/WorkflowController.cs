@@ -406,7 +406,7 @@ namespace WAS_Management.Controllers
                 // Serialize the combined object to JSON
                 // string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
                 var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
-                deserializedData.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI", IterationType = "RFI" });
+                deserializedData.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI", IterationType = "RFI", PerformedOn = DateTime.Now });
                 var data = new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI", Comment = stepAction.Comments, RequestedBy = stepAction.PerformedBy.ToString() };
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
                 string jsonString2 = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
@@ -451,7 +451,7 @@ namespace WAS_Management.Controllers
                 // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
 
                 var data = new Dictionary<string, object> {
-                    { "Id" , stepAction.AssignTo.ToString() },{ "Status" , "Not Approved" },{ "Rights" , "Edit" } , { "IterationType" , "Reassigned" }
+                    { "Id" , stepAction.AssignTo.ToString() },{ "Status" , "Not Approved" },{ "Rights" , "Edit" } , { "IterationType" , "Reassigned" }, {"PerformedOn" , DateTime.Now }
                 };
 
                 deserializedData.Add(data);
@@ -511,7 +511,7 @@ namespace WAS_Management.Controllers
                         await _context.SaveChangesAsync();
                         item["Status"] = "Not Approved";
                         item["IterationType"] = "Return Step";
-                     
+                        item["PerformedOn"] = DateTime.Now;
                     }
                 }
 
