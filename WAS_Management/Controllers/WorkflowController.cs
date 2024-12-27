@@ -10,6 +10,7 @@ using WAS_Management.Models;
 using WAS_Management.ViewModels;
 using Task = WAS_Management.Models.Task;
 using System.Collections.Generic;
+using Microsoft.OpenApi.Models;
 
 namespace WAS_Management.Controllers
 {
@@ -313,30 +314,30 @@ namespace WAS_Management.Controllers
                                 };
                                 return new JsonResult(successData);
                             }
-                           
+
                             var nextstepflow = await _context.WorkflowSteps.Where(x => x.StepName == nextstepname && x.WorkflowId == workflowstep.WorkflowId).FirstOrDefaultAsync();
                             // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(nextstepflow.AssignedTo);
                             if (nextstepflow != null)
                             {
-                            
-                            var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(nextstepflow.AssignedTo);
 
-                            foreach (var item in deserializedData)
-                            {
-                                if (item["Rights"].ToString() == "Edit")
+                                var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(nextstepflow.AssignedTo);
+
+                                foreach (var item in deserializedData)
                                 {
-                                    await CreateTask(nextstepflow.WorkflowId.Value, nextstepflow.Id.ToString(), "Workflow", Convert.ToInt32(item["Id"].ToString()), "Modification Request", workflows.InitiatorId.Value);
+                                    if (item["Rights"].ToString() == "Edit")
+                                    {
+                                        await CreateTask(nextstepflow.WorkflowId.Value, nextstepflow.Id.ToString(), "Workflow", Convert.ToInt32(item["Id"].ToString()), "Modification Request", workflows.InitiatorId.Value);
+                                    }
                                 }
-                            }
-                            
-                            nextstepflow.Status = "In Progress";
-                            await _context.SaveChangesAsync();
+
+                                nextstepflow.Status = "In Progress";
+                                await _context.SaveChangesAsync();
                             }
                             if (workflowstep.StepName == "Confirm Payment Received")
                             {
                                 workflows.Status = "Approved";
                                 await _context.SaveChangesAsync();
-                                var tasklst = await _context.Tasks.Where(x=>x.WorkflowId  == workflows.Id).ToListAsync();
+                                var tasklst = await _context.Tasks.Where(x => x.WorkflowId == workflows.Id).ToListAsync();
                                 foreach (var task in tasklst)
                                 {
                                     task.Status = "Approved";
@@ -405,8 +406,8 @@ namespace WAS_Management.Controllers
                 // Serialize the combined object to JSON
                 // string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
                 var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
-                deserializedData.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI" });
-                var data = new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI", Comment = stepAction.Comments , RequestedBy = stepAction.PerformedBy.ToString() };
+                deserializedData.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI", IterationType = "RFI" });
+                var data = new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI", Comment = stepAction.Comments, RequestedBy = stepAction.PerformedBy.ToString() };
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
                 string jsonString2 = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
                 workflowstep.AssignedTo = jsonString;
@@ -450,7 +451,7 @@ namespace WAS_Management.Controllers
                 // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
 
                 var data = new Dictionary<string, object> {
-                    { "Id" , stepAction.AssignTo.ToString() },{ "Status" , "Not Approved" },{ "Rights" , "Edit" }
+                    { "Id" , stepAction.AssignTo.ToString() },{ "Status" , "Not Approved" },{ "Rights" , "Edit" } , { "IterationType" , "Reassigned" }
                 };
 
                 deserializedData.Add(data);
@@ -480,7 +481,7 @@ namespace WAS_Management.Controllers
 
             // Find the workflow step
             var workflowstep = await _context.WorkflowSteps.FindAsync(WorkflowStepId);
-                if (workflowstep != null)
+            if (workflowstep != null)
             {
                 var workflows = await _context.Workflows.FindAsync(workflowstep.WorkflowId);
                 // Serialize the combined object to JSON
@@ -509,6 +510,8 @@ namespace WAS_Management.Controllers
                         prevstepflow.Status = "In Progress";
                         await _context.SaveChangesAsync();
                         item["Status"] = "Not Approved";
+                        item["IterationType"] = "Return Step";
+                     
                     }
                 }
 
