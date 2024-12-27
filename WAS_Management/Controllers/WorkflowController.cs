@@ -242,11 +242,13 @@ namespace WAS_Management.Controllers
                     var workflowstep = await _context.WorkflowSteps.FindAsync(WorkflowStepId);
                     if (workflowstep != null)
                     {
+
                         // Create a combined JSON object with stepAction and pathData
                         var combinedData = new
                         {
                             StepAction = stepAction,
-                            Files = pathData // Embed pathData (list of files)
+                            Files = pathData, // Embed pathData (list of files)
+                            
                         };
 
                         // Serialize the combined object to JSON
@@ -406,10 +408,13 @@ namespace WAS_Management.Controllers
                 // Serialize the combined object to JSON
                 // string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
                 var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
-                deserializedData.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI", IterationType = "RFI", PerformedOn = DateTime.Now });
-                var data = new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI", Comment = stepAction.Comments, RequestedBy = stepAction.PerformedBy.ToString() };
+                List<dynamic>? deserializedData2 = new List<dynamic>(); 
+                if(workflowstep.Details != null)
+                    JsonSerializer.Deserialize<List<dynamic>>(workflowstep.Details);
+                deserializedData.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI"});
+                deserializedData2.Add( new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI", Comment = stepAction.Comments, RequestedBy = stepAction.PerformedBy.ToString(), PerformedOn = DateTime.Now, IterationType = "RFI" });
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
-                string jsonString2 = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+                string jsonString2 = JsonSerializer.Serialize(deserializedData2, new JsonSerializerOptions { WriteIndented = true });
                 workflowstep.AssignedTo = jsonString;
                 workflowstep.Details = jsonString2;
                 // workflowstep.ExecutedOn = DateTime.Now;
@@ -439,6 +444,9 @@ namespace WAS_Management.Controllers
                 // Serialize the combined object to JSON
                 // string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
                 var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(workflowstep.AssignedTo);
+                List<dynamic>? deserializedData2 = new List<dynamic>();
+                if (workflowstep.Details != null)
+                    JsonSerializer.Deserialize<List<dynamic>>(workflowstep.Details);
                 foreach (var item in deserializedData)
                 {
                     if (item["Rights"].ToString() == "Edit" && item["Id"].ToString() == stepAction.PerformedBy.ToString())
@@ -455,8 +463,10 @@ namespace WAS_Management.Controllers
                 };
 
                 deserializedData.Add(data);
+                deserializedData2.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "Edit", Comment = "", RequestedBy = stepAction.PerformedBy.ToString(), PerformedOn = DateTime.Now, IterationType = "Reassigned" });
+
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
-                string jsonString2 = JsonSerializer.Serialize(data, new JsonSerializerOptions { WriteIndented = true });
+                string jsonString2 = JsonSerializer.Serialize(deserializedData2, new JsonSerializerOptions { WriteIndented = true });
                 workflowstep.Details = jsonString2;
                 workflowstep.AssignedTo = jsonString;
                 // workflowstep.ExecutedOn = DateTime.Now;
@@ -510,13 +520,17 @@ namespace WAS_Management.Controllers
                         prevstepflow.Status = "In Progress";
                         await _context.SaveChangesAsync();
                         item["Status"] = "Not Approved";
-                        item["IterationType"] = "Return Step";
-                        item["PerformedOn"] = DateTime.Now;
                     }
                 }
+                List<dynamic>? deserializedData2 = new List<dynamic>();
+                if (prevstepflow.Details != null)
+                    JsonSerializer.Deserialize<List<dynamic>>(prevstepflow.Details);
+                deserializedData2.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "Edit", Comment = "", RequestedBy = stepAction.PerformedBy.ToString(), PerformedOn = DateTime.Now, IterationType = "Return Step" });
 
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
-                workflowstep.Details = jsonString;
+                string jsonString2 = JsonSerializer.Serialize(deserializedData2, new JsonSerializerOptions { WriteIndented = true });
+                workflowstep.AssignedTo = jsonString;
+                workflowstep.Details = jsonString2;
                 // workflowstep.ExecutedOn = DateTime.Now;
                 workflowstep.Status = "Not Started";
                 await _context.SaveChangesAsync();
