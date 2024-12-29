@@ -410,7 +410,7 @@ namespace WAS_Management.Controllers
                 var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
                 List<dynamic>? deserializedData2 = new List<dynamic>(); 
                 if(workflowstep.Details != null)
-                    JsonSerializer.Deserialize<List<dynamic>>(workflowstep.Details);
+                    deserializedData2 = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.Details);
                 deserializedData.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI"});
                 deserializedData2.Add( new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "RFI", Comment = stepAction.Comments, RequestedBy = stepAction.PerformedBy.ToString(), PerformedOn = DateTime.Now, IterationType = "RFI" });
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
@@ -446,7 +446,7 @@ namespace WAS_Management.Controllers
                 var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(workflowstep.AssignedTo);
                 List<dynamic>? deserializedData2 = new List<dynamic>();
                 if (workflowstep.Details != null)
-                    JsonSerializer.Deserialize<List<dynamic>>(workflowstep.Details);
+                    deserializedData2 = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.Details);
                 foreach (var item in deserializedData)
                 {
                     if (item["Rights"].ToString() == "Edit" && item["Id"].ToString() == stepAction.PerformedBy.ToString())
@@ -524,7 +524,7 @@ namespace WAS_Management.Controllers
                 }
                 List<dynamic>? deserializedData2 = new List<dynamic>();
                 if (prevstepflow.Details != null)
-                    JsonSerializer.Deserialize<List<dynamic>>(prevstepflow.Details);
+                    deserializedData2 = JsonSerializer.Deserialize<List<dynamic>>(prevstepflow.Details);
                 deserializedData2.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "Edit", Comment = "", RequestedBy = stepAction.PerformedBy.ToString(), PerformedOn = DateTime.Now, IterationType = "Return Step" });
 
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
