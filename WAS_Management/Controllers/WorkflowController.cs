@@ -459,7 +459,7 @@ namespace WAS_Management.Controllers
                 // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
 
                 var data = new Dictionary<string, object> {
-                    { "Id" , stepAction.AssignTo.ToString() },{ "Status" , "Not Approved" },{ "Rights" , "Edit" } , { "IterationType" , "Reassigned" }, {"PerformedOn" , DateTime.Now }
+                    { "Id" , stepAction.AssignTo.ToString() },{ "Status" , "Not Approved" },{ "Rights" , "Edit" } , { "IterationType" , "Reassigned" }, {"PerformedOn" , DateTime.Now }, { "RequestedBy" , "" } , {"RequestedTo" , ""}
                 };
 
                 deserializedData.Add(data);
@@ -520,6 +520,8 @@ namespace WAS_Management.Controllers
                         prevstepflow.Status = "In Progress";
                         await _context.SaveChangesAsync();
                         item["Status"] = "Not Approved";
+                        item["IterationType"] = "Return Step";
+                        item["PerformedOn"] = DateTime.Now;
                     }
                 }
                 List<dynamic>? deserializedData2 = new List<dynamic>();
