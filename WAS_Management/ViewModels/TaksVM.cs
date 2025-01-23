@@ -21,5 +21,8 @@
         public string? Status { get; set; }
 
         public int? AssignedTo { get; set; }
+
+        public string? Unique_Id { get; set; }
+        public bool? Isviewed { get; set; }
     }
 }

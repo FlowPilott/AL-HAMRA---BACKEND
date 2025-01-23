@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using Pomelo.EntityFrameworkCore.MySql.Scaffolding.Internal;
 using WAS_Management.Models;
-using Task = WAS_Management.Models.Task;
 
 namespace WAS_Management.Data;
 
@@ -24,9 +23,11 @@ public partial class WAS_ManagementContext : DbContext
 
     public virtual DbSet<StepAction> StepActions { get; set; }
 
-    public virtual DbSet<Task> Tasks { get; set; }
+    public virtual DbSet<Unit> Units { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
+
+    public virtual DbSet<UserTask> UserTasks { get; set; }
 
     public virtual DbSet<Workflow> Workflows { get; set; }
 
@@ -126,6 +127,9 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.CurrentProposedLayout)
                 .HasMaxLength(255)
                 .HasColumnName("current_proposed_layout");
+            entity.Property(e => e.CustomerName)
+                .HasMaxLength(255)
+                .HasColumnName("customer_name");
             entity.Property(e => e.CustomerType)
                 .HasMaxLength(255)
                 .HasColumnName("customer_type");
@@ -204,6 +208,8 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.ActionType)
                 .HasColumnType("enum('RFI','Reassign','Return Step','Submit')")
                 .HasColumnName("action_type");
+            entity.Property(e => e.ApprovalEndDate).HasColumnType("datetime");
+            entity.Property(e => e.ApprovalStartDate).HasColumnType("datetime");
             entity.Property(e => e.AssignTo).HasColumnName("assignTo");
             entity.Property(e => e.BuiltupExtensionFee).HasPrecision(18, 2);
             entity.Property(e => e.Category).HasMaxLength(255);
@@ -216,44 +222,52 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.ModificationFee).HasPrecision(18, 2);
             entity.Property(e => e.ModificationRequest).HasMaxLength(255);
             entity.Property(e => e.Name).HasMaxLength(255);
+            entity.Property(e => e.PaidBy).HasMaxLength(255);
             entity.Property(e => e.PerformedBy).HasColumnName("performed_by");
             entity.Property(e => e.PerformedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("datetime")
                 .HasColumnName("performed_on");
+            entity.Property(e => e.PrevStepId).HasMaxLength(255);
             entity.Property(e => e.StepId).HasColumnName("step_id");
             entity.Property(e => e.SubCat).HasMaxLength(255);
             entity.Property(e => e.SubCategory).HasMaxLength(255);
             entity.Property(e => e.Total).HasPrecision(18, 2);
             entity.Property(e => e.UnlistedContractorFee).HasPrecision(18, 2);
+            entity.Property(e => e.VendorName).HasMaxLength(255);
         });
 
-        modelBuilder.Entity<Task>(entity =>
+        modelBuilder.Entity<Unit>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 
-            entity.ToTable("tasks");
+            entity.ToTable("units");
 
             entity.Property(e => e.Id).HasColumnName("id");
-            entity.Property(e => e.Ageing).HasColumnName("ageing");
-            entity.Property(e => e.AssignedTo).HasColumnName("assigned_to");
-            entity.Property(e => e.Department)
+            entity.Property(e => e.Newnumber)
                 .HasMaxLength(255)
-                .HasColumnName("department");
-            entity.Property(e => e.DueDate)
-                .HasColumnType("datetime")
-                .HasColumnName("due_date");
-            entity.Property(e => e.Status)
-                .HasMaxLength(50)
-                .HasColumnName("status");
-            entity.Property(e => e.StepId).HasColumnName("step_id");
-            entity.Property(e => e.TaskType)
-                .HasColumnType("enum('Workflow','RFI','Reassigned','Return Step')")
-                .HasColumnName("task_type");
-            entity.Property(e => e.Template)
+                .HasColumnName("newnumber");
+            entity.Property(e => e.Sapno)
                 .HasMaxLength(255)
-                .HasColumnName("template");
-            entity.Property(e => e.WorkflowId).HasColumnName("workflow_id");
+                .HasColumnName("sapno");
+            entity.Property(e => e.Slno)
+                .HasMaxLength(255)
+                .HasColumnName("slno");
+            entity.Property(e => e.Sqft)
+                .HasMaxLength(255)
+                .HasColumnName("sqft");
+            entity.Property(e => e.Type)
+                .HasMaxLength(255)
+                .HasColumnName("type");
+            entity.Property(e => e.TypeP)
+                .HasMaxLength(255)
+                .HasColumnName("type_p");
+            entity.Property(e => e.Unitid)
+                .HasMaxLength(255)
+                .HasColumnName("unitid");
+            entity.Property(e => e.View)
+                .HasMaxLength(255)
+                .HasColumnName("view");
         });
 
         modelBuilder.Entity<User>(entity =>
@@ -277,6 +291,35 @@ public partial class WAS_ManagementContext : DbContext
                 .HasColumnName("username");
         });
 
+        modelBuilder.Entity<UserTask>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("user_tasks");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Ageing).HasColumnName("ageing");
+            entity.Property(e => e.AssignedTo).HasColumnName("assigned_to");
+            entity.Property(e => e.Department)
+                .HasMaxLength(255)
+                .HasColumnName("department");
+            entity.Property(e => e.DueDate)
+                .HasColumnType("datetime")
+                .HasColumnName("due_date");
+            entity.Property(e => e.Isviewed).HasColumnName("isviewed");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
+            entity.Property(e => e.StepId).HasColumnName("step_id");
+            entity.Property(e => e.TaskType)
+                .HasColumnType("enum('Workflow','RFI','Reassigned','Return Step')")
+                .HasColumnName("task_type");
+            entity.Property(e => e.Template)
+                .HasMaxLength(255)
+                .HasColumnName("template");
+            entity.Property(e => e.WorkflowId).HasColumnName("workflow_id");
+        });
+
         modelBuilder.Entity<Workflow>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
@@ -284,14 +327,38 @@ public partial class WAS_ManagementContext : DbContext
             entity.ToTable("workflows");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Amount)
+                .HasPrecision(8, 2)
+                .HasColumnName("amount");
+            entity.Property(e => e.ApprovalEndDate)
+                .HasColumnType("datetime")
+                .HasColumnName("approval_end_date");
+            entity.Property(e => e.ApprovalStartDate)
+                .HasColumnType("datetime")
+                .HasColumnName("approval_start_date");
             entity.Property(e => e.Details)
                 .HasColumnType("json")
                 .HasColumnName("details");
             entity.Property(e => e.InitiatorId).HasColumnName("initiator_id");
+            entity.Property(e => e.InteractionId)
+                .HasMaxLength(255)
+                .HasColumnName("interaction_id");
+            entity.Property(e => e.PaidBy)
+                .HasMaxLength(255)
+                .HasColumnName("paid_by");
             entity.Property(e => e.ProcessOwner).HasColumnName("process_owner");
             entity.Property(e => e.Progress)
                 .HasMaxLength(50)
                 .HasColumnName("progress");
+            entity.Property(e => e.ReceiptBy)
+                .HasMaxLength(255)
+                .HasColumnName("receipt_by");
+            entity.Property(e => e.ReceiptDate)
+                .HasColumnType("datetime")
+                .HasColumnName("receipt_date");
+            entity.Property(e => e.ReceiptNo)
+                .HasMaxLength(255)
+                .HasColumnName("receipt_no");
             entity.Property(e => e.StartedOn)
                 .HasDefaultValueSql("CURRENT_TIMESTAMP")
                 .HasColumnType("datetime")
@@ -302,6 +369,9 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.Subject)
                 .HasMaxLength(255)
                 .HasColumnName("subject");
+            entity.Property(e => e.VendorName)
+                .HasMaxLength(255)
+                .HasColumnName("vendor_name");
             entity.Property(e => e.WorkflowTypeId).HasColumnName("workflow_type_id");
         });
 
@@ -337,6 +407,7 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.Actiondetails)
                 .HasColumnType("json")
                 .HasColumnName("actiondetails");
+            entity.Property(e => e.ApprovedBy).HasColumnName("approved_by");
             entity.Property(e => e.AssignedTo)
                 .HasColumnType("json")
                 .HasColumnName("assigned_to");

@@ -23,6 +23,18 @@ namespace WAS_Management.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
+
+            // Check if the endpoint allows anonymous access
+            var endpoint = context.GetEndpoint();
+            var allowAnonymous = endpoint?.Metadata.GetMetadata<Microsoft.AspNetCore.Authorization.IAllowAnonymous>();
+            if (allowAnonymous != null)
+            {
+                // Bypass JWT validation for endpoints marked with [AllowAnonymous]
+                await _next(context);
+                return;
+            }
+
+
             var remoteIp = context.Connection.RemoteIpAddress;
 
             // Check if the IP is in the allowed list
@@ -59,6 +71,7 @@ namespace WAS_Management.Middleware
                 await _next(context); // Allow the token generation request to proceed
                 return;
             }
+
 
 
             // Check if the Authorization header is present

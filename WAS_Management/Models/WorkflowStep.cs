@@ -28,4 +28,6 @@ public partial class WorkflowStep
     public string? Details { get; set; }
 
     public string? Actiondetails { get; set; }
+
+    public int? ApprovedBy { get; set; }
 }

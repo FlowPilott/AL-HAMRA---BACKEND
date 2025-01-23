@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace WAS_Management.Models;
 
-public partial class Task
+public partial class UserTask
 {
     public int Id { get; set; }
 

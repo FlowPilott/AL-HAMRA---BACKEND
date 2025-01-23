@@ -9,15 +9,7 @@ using WAS_Management.ViewModels;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add CORS policy
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("AllowAll", policy =>
-    {
-        policy.AllowAnyOrigin()   // Allows all origins
-              .AllowAnyMethod()   // Allows all HTTP methods (GET, POST, PUT, DELETE, etc.)
-              .AllowAnyHeader();  // Allows all headers
-    });
-});
+builder.Services.AddCors();
 
 // Add services to the container.
 builder.Services.AddControllers();
@@ -89,29 +81,29 @@ var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 //// Middleware to handle CORS issues
-app.Use(async (context, next) =>
-{
-    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-    context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    if (context.Request.Method == "OPTIONS")
-    {
-        context.Response.StatusCode = 200;
-        return;
-    }
-    await next();
-});
+//app.Use(async (context, next) =>
+//{
+//    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
+//    context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+//    context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
+//    if (context.Request.Method == "OPTIONS")
+//    {
+//        context.Response.StatusCode = 200;
+//        return;
+//    }
+//    await next();
+//});
 
 // Configure the HTTP request pipeline.
 app.UseSwagger();
-app.UseCors("AllowAll");
+
 app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
 });
 
 app.UseHttpsRedirection();
-
+app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 app.UseAuthentication();
 app.UseMiddleware<CustomJwtSecurityMiddleware>();
 app.UseAuthorization();

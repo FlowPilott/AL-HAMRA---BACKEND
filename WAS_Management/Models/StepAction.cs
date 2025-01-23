@@ -42,4 +42,14 @@ public partial class StepAction
     public string? ModificationRequest { get; set; }
 
     public string? SubCategory { get; set; }
+
+    public DateTime? ApprovalStartDate { get; set; }
+
+    public DateTime? ApprovalEndDate { get; set; }
+
+    public string? PaidBy { get; set; }
+
+    public string? VendorName { get; set; }
+
+    public string? PrevStepId { get; set; }
 }

@@ -63,11 +63,13 @@ public partial class Interaction
 
     public string? EmirateId { get; set; }
 
+    public DateTime? EndDuration { get; set; }
+
     public string? ThirdPartyLiabilityCert { get; set; }
 
     public string? CurrentProposedLayout { get; set; }
 
     public DateTime? StartDuration { get; set; }
 
-    public DateTime? EndDuration { get; set; }
+    public string? CustomerName { get; set; }
 }
