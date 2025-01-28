@@ -13,6 +13,7 @@ using WAS_Management.Data;
 using Newtonsoft.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Primitives;
+using Org.BouncyCastle.Asn1.Ocsp;
 
 
 namespace WAS_Management.Controllers
@@ -165,7 +166,7 @@ namespace WAS_Management.Controllers
                 }
             }
 
-         
+
             var intwork = "";
             if (!StringValues.IsNullOrEmpty(formData["InternalWork"]))
             {
@@ -231,6 +232,11 @@ namespace WAS_Management.Controllers
             return $"{prefix}{id:D5}";
         }
 
+
+
+
+
+
         private async System.Threading.Tasks.Task SendModificationEmail(Interaction interaction, string customertoken, string emailtype)
         {
             var smtpClient = new SmtpClient(_configuration["Mail:Host"])
@@ -255,11 +261,12 @@ namespace WAS_Management.Controllers
             }
             else
             {
+                // Create the email message
                 var mailMessage = new MailMessage
                 {
                     From = new MailAddress(_configuration["Mail:From"]),
-                    Subject = "Application in progress",
-                    Body = $"Dear Customer,\n\nYour request ID {customertoken} is under process, and you will be contacted\r\nsoon\n\nRegards,\nAlHamra Team",
+                    Subject = $"Update on Your Service Request - {{ID: {customertoken}}}",
+                    Body = $"Dear {interaction.OwnerName},\n\nThank you for reaching out to the Property Management Team at Al Hamra Real Estate Development.\n\nWe are pleased to confirm that your request {{ID: {customertoken}}} is under process, and our team will provide an update shortly. Kindly quote the reference number in future communications regarding this request.\n\nWe appreciate your patience and look forward to assisting you.\n\nWarm regards,\nAl Hamra Property Management Team",
                     IsBodyHtml = false,
                 };
                 mailMessage.To.Add(interaction.Email);

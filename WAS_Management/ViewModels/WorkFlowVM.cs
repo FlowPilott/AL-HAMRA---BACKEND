@@ -1,4 +1,5 @@
-﻿using WAS_Management.Models;
+﻿using System.Diagnostics;
+using WAS_Management.Models;
 
 namespace WAS_Management.ViewModels
 {
@@ -91,7 +92,55 @@ namespace WAS_Management.ViewModels
 
         // New property to hold the answer
         public string Answer { get; set; }
+        public string Files { get; set; }
     }
 
+
+    public class PdfGenerator
+    {
+        public string GeneratePdf(string htmlPath, string outputPath)
+        {
+            // Path to the wkhtmltopdf binary (ensure it's in PATH or provide the full path)
+            string wkhtmlPath = "/usr/bin/wkhtmltopdf";
+
+            // Create the process
+            var process = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = wkhtmlPath,
+                    Arguments = $"--enable-local-file-access \"{htmlPath}\" \"{outputPath}\"",
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                }
+            };
+
+            try
+            {
+                // Start the process
+                process.Start();
+
+                // Capture any output or errors
+                string output = process.StandardOutput.ReadToEnd();
+                string error = process.StandardError.ReadToEnd();
+
+                process.WaitForExit();
+
+                if (process.ExitCode != 0)
+                {
+                    throw new Exception($"wkhtmltopdf failed. Error: {error}");
+                }
+
+                return outputPath; // Return the path to the generated PDF
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error generating PDF: {ex.Message}");
+                throw;
+            }
+        }
+    }
 
 }

@@ -52,4 +52,6 @@ public partial class StepAction
     public string? VendorName { get; set; }
 
     public string? PrevStepId { get; set; }
+
+    public string? Answer { get; set; }
 }

@@ -72,4 +72,6 @@ public partial class Interaction
     public DateTime? StartDuration { get; set; }
 
     public string? CustomerName { get; set; }
+
+    public string? TradeLicenceNo { get; set; }
 }

@@ -8,8 +8,16 @@
 	  <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	  <PublishTrimmed>false</PublishTrimmed>
   </PropertyGroup>
+	
+  <ItemGroup>
+    <None Include="wwwroot\Templates\Logo.svg" />
+    <None Include="wwwroot\Templates\PDF.html" />
+    <None Include="wwwroot\Templates\stamp.png" />
+  </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DinkToPdf" Version="1.0.8" />
+    <PackageReference Include="HtmlRenderer.PdfSharp" Version="1.5.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.11" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="8.0.2">
       <PrivateAssets>all</PrivateAssets>
@@ -22,6 +30,7 @@
     <PackageReference Include="Pomelo.EntityFrameworkCore.MySql" Version="8.0.2" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.4.0" />
     <PackageReference Include="System.Text.Json" Version="8.0.5" />
+    <PackageReference Include="WkHtmlToPdf" Version="1.0.2" />
   </ItemGroup>
 
 </Project>

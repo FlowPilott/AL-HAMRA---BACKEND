@@ -18,6 +18,11 @@ using System.Linq;
 using PdfSharp.Pdf;
 using System.IO.Compression;
 using Microsoft.AspNetCore.Authorization;
+using DinkToPdf;
+using DinkToPdf.Contracts;
+using Interaction = WAS_Management.Models.Interaction;
+
+
 
 namespace WAS_Management.Controllers
 {
@@ -393,32 +398,11 @@ namespace WAS_Management.Controllers
                         .Where(x => x.Id == stepaction.StepId)
                         .FirstOrDefaultAsync();
 
-                    // Safely parse the existing JSON details
-                    var detailsList = JsonConvert.DeserializeObject<List<DetailModelVM>>(prevstep.Details)
-                                      ?? new List<DetailModelVM>();
 
-                    // Option A: Add/Update the 'Answer' field for all items in the JSON
-                    foreach (var detail in detailsList)
-                    {
-                        if (detail.StepId != null)
-                        {
-                            int stpid = Convert.ToInt32(detail.StepId);
-                            int prvstpid = Convert.ToInt32(stepAction.PrevStepId);
-                            if (stpid == prvstpid)
-                            {
-                                detail.Answer = stepAction.Comments == null ? "" : stepAction.Comments;
-                            }
-                        }
-                    }
-
-
-                    // Serialize the updated list back to JSON and store it
-                    prevstep.Details = JsonConvert.SerializeObject(detailsList);
-
-                    // Save changes
-                    await _context.SaveChangesAsync();
 
                     var pathData = new List<dynamic>();
+
+
                     var files = formData.Files;
                     if (files != null && files.Count > 0)
                     {
@@ -471,6 +455,50 @@ namespace WAS_Management.Controllers
                             }
                         }
                     }
+
+
+
+                    // Safely parse the existing JSON details
+                    var detailsList = JsonConvert.DeserializeObject<List<DetailModelVM>>(prevstep.Details)
+                                      ?? new List<DetailModelVM>();
+
+                    // Option A: Add/Update the 'Answer' field for all items in the JSON
+                    foreach (var detail in detailsList)
+                    {
+                        if (detail.StepId != null)
+                        {
+                            int stpid = Convert.ToInt32(detail.StepId);
+                            int prvstpid = Convert.ToInt32(stepAction.PrevStepId);
+                            if (stpid == prvstpid)
+                            {
+                                detail.Answer = stepAction.Comments == null ? "" : stepAction.Comments;
+                                detail.Files = JsonConvert.SerializeObject(pathData);
+                            }
+                        }
+                    }
+
+
+
+
+
+
+
+                    var combinedData = new
+                    {
+                        Details = detailsList,
+                        Files = pathData, // Embed pathData (list of files)
+
+                    };
+
+                    // string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
+                    //prevstep.Actiondetails = jsonString;
+
+
+                    // Serialize the updated list back to JSON and store it
+                    prevstep.Details = JsonConvert.SerializeObject(detailsList);
+
+                    // Save changes
+                    await _context.SaveChangesAsync();
 
 
 
@@ -673,6 +701,27 @@ namespace WAS_Management.Controllers
 
 
                                 await _context.SaveChangesAsync();
+
+
+
+                                // Step 1: Get the workflow step with ID = 161
+                                var ws = _context.WorkflowSteps.FirstOrDefault(w => w.Id == workflowstep.Id);
+
+                                // Step 2: Get the workflow with ID = 26
+                                var workflow = _context.Workflows.FirstOrDefault(w => w.Id == ws.WorkflowId);
+                                int interactionid = Convert.ToInt32(workflow.InteractionId);
+                                // Step 3: Get the email address from interaction with ID = 42
+                                var emailDetails = _context.Interactions
+                               .Where(i => i.Id == interactionid)
+                               .FirstOrDefault();
+
+
+
+                                await SaveWorkPermitAsPdfAsync(WorkflowStepId, emailDetails, "Bejoy", stepAction.Comments);
+
+                                //await SendPaymentConfirmationEmail(emailDetails.EmailAddress, stepAction.Comments, workpermitpath);
+
+
                                 //await SendModificationEmail2("");
                                 var successData = new
                                 {
@@ -710,13 +759,35 @@ namespace WAS_Management.Controllers
                                 workflows.ApprovalStartDate = stepAction.ApprovalStartDate;
                                 workflows.ApprovalEndDate = stepAction.ApprovalEndDate;
                                 await _context.SaveChangesAsync();
+
                             }
 
                             if (workflowstep.StepName == "Review Scope and Fees Calculation")
                             {
                                 workflows.Amount = stepAction.Total;
                                 await _context.SaveChangesAsync();
+
+
+
+
+
+                                // Step 2: Get the workflow with ID = 26
+                                var workflow = _context.Workflows.FirstOrDefault(w => w.Id == workflowstep.WorkflowId);
+                                int intractionid = Convert.ToInt32(workflow.InteractionId);
+                                // Step 3: Get the email address from interaction with ID = 42
+                                var emailDetails = _context.Interactions
+                               .Where(i => i.Id == intractionid)
+                               .Select(i => new
+                               {
+                                   i.EmailAddress,
+                                   i.OwnerName,
+                               })
+                               .FirstOrDefault();
+
+
+                                await SendPaymentEmailToCustomer(emailDetails.OwnerName, workflows.Amount.ToString(), emailDetails.EmailAddress);
                             }
+
 
                             if (workflowstep.StepName == "Upload the Invoice")
                             {
@@ -727,6 +798,9 @@ namespace WAS_Management.Controllers
                                 workflows.PaidBy = stepAction.PaidBy;
                                 workflows.VendorName = stepAction.VendorName;
                                 await _context.SaveChangesAsync();
+
+                                var invoiceemail = _configuration.GetValue<string>("Emails:InvoiceEmail");
+                                await SendInvoiceAndReceiptEmail(invoiceemail, files);
                             }
 
                             if (workflowstep.StepName == "Confirm Payment Received")
@@ -734,7 +808,7 @@ namespace WAS_Management.Controllers
                                 // 2. Get the upload path from appsettings.json
                                 var uploadsDirectory = _configuration.GetValue<string>("upload:path");
 
-                             //   var uploadsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+                                //   var uploadsDirectory = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
                                 if (!Directory.Exists(uploadsDirectory))
                                 {
                                     Directory.CreateDirectory(uploadsDirectory);
@@ -758,7 +832,7 @@ namespace WAS_Management.Controllers
 
 
                                 // Create a blank PDF document
-                                string pdfFileName = "workpermit.pdf";
+                                string pdfFileName = "workpermit_" + WorkflowStepId + ".pdf";
                                 string pdfPath = Path.Combine(uploadsDirectory, pdfFileName);
 
                                 // Initialize a new PDF document
@@ -787,6 +861,23 @@ namespace WAS_Management.Controllers
                                     Name = pdfFileName,
                                     Path = pdfPath
                                 });
+
+                                // Step 1: Get the workflow step with ID = 161
+                                var ws = _context.WorkflowSteps.FirstOrDefault(w => w.Id == workflowstep.Id);
+
+                                // Step 2: Get the workflow with ID = 26
+                                var workflow = _context.Workflows.FirstOrDefault(w => w.Id == ws.WorkflowId);
+                                int interactionid = Convert.ToInt32(workflow.InteractionId);
+                                // Step 3: Get the email address from interaction with ID = 42
+                                var emailDetails = _context.Interactions
+                               .Where(i => i.Id == interactionid)
+                               .FirstOrDefault();
+
+
+
+                                var workpermitpath = await SaveWorkPermitAsPdfAsync(WorkflowStepId, emailDetails, "Bejoy", stepAction.Comments);
+
+                                await SendPaymentConfirmationEmail(emailDetails.EmailAddress, stepAction.Comments, workpermitpath);
                             }
                         }
                         var Data = new
@@ -835,6 +926,8 @@ namespace WAS_Management.Controllers
                 return new JsonResult(errorData);
             }
         }
+
+
         [HttpPost("CreateWorkFlowStepActionRFI")]
         public async Task<bool> CreateWorkFlowStepActionRFI(int WorkflowStepId, StepAction stepAction)
         {
@@ -923,6 +1016,134 @@ namespace WAS_Management.Controllers
                 return false;
             }
         }
+
+
+        //public async Task<string> SaveWorkPermitAsPdfAsync(int workflowStepId)
+        //{
+        //    // Retrieve the uploads directory from configuration
+        //    var uploadsDirectory = _configuration.GetValue<string>("upload:path");
+
+        //    // Define the output PDF file name and path
+        //    string pdfFileName = $"workpermit_{workflowStepId}.pdf";
+        //    string pdfPath = Path.Combine(uploadsDirectory, pdfFileName);
+
+        //    // Load the HTML template content
+        //    var wwwRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+        //    var htmlTemplatePath = Path.Combine(wwwRootPath, "Templates", "PDF.html");
+        //    string htmlContent = await System.IO.File.ReadAllTextAsync(htmlTemplatePath);
+
+        //    // Replace placeholders in the HTML content with dynamic values
+        //    htmlContent = htmlContent
+        //        .Replace("MM/DD/YYYY", DateTime.Now.ToString("MM/dd/yyyy")) // Replace date placeholders
+        //        .Replace("Enter Permit Code", "PERMIT12345")               // Replace permit code
+        //        .Replace("123 Anywhere St., Any City, ST 12345", "Dynamic Address")
+        //        .Replace("afdsgfhdhgfjgfjghgkgkughhlhlkg;sdghgjigkjl", "Dynamic Work Description");
+
+        //    // Create a DinkToPdf converter instanceReview Scope and Fees Calculation
+        //    var converter = new SynchronizedConverter(new PdfTools());
+
+        //    // Configure the PDF generation settings
+        //    var pdfDocument = new HtmlToPdfDocument()
+        //    {
+        //        GlobalSettings = new GlobalSettings
+        //        {
+        //            ColorMode = ColorMode.Color,
+        //            Orientation = Orientation.Portrait,
+        //            PaperSize = PaperKind.A4,
+        //            Out = pdfPath // Specify the output path for the PDF file
+        //        }
+        //    };
+
+        //    // Add the HTML content to the document
+        //    pdfDocument.Objects.Add(new ObjectSettings
+        //    {
+        //        HtmlContent = htmlContent, // HTML content to be converted to PDF
+        //        WebSettings = { DefaultEncoding = "utf-8" }
+        //    });
+
+        //    // Generate the PDF
+        //    converter.Convert(pdfDocument);
+
+        //    // Return the file path of the saved PDF
+        //    return pdfPath;
+        //}
+
+        public async Task<string> SaveWorkPermitAsPdfAsync(int workflowStepId, Interaction intobj, string approvalby, string comments)
+        {
+            // Retrieve the uploads directory from configuration
+            var uploadsDirectory = _configuration.GetValue<string>("upload:path");
+
+            if (string.IsNullOrEmpty(uploadsDirectory))
+            {
+                throw new InvalidOperationException("The upload path is not configured.");
+            }
+
+            // Ensure the uploads directory exists
+            if (!Directory.Exists(uploadsDirectory))
+            {
+                Directory.CreateDirectory(uploadsDirectory);
+            }
+
+            // Define the output PDF file name and path
+            string pdfFileName = $"workpermit_{workflowStepId}.pdf";
+            string pdfPath = Path.Combine(uploadsDirectory, pdfFileName);
+
+            // Load the HTML template content
+            var wwwRootPath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot");
+            var htmlTemplatePath = Path.Combine(wwwRootPath, "Templates", "PDF.html");
+
+            if (!System.IO.File.Exists(htmlTemplatePath))
+            {
+                throw new FileNotFoundException($"The HTML template was not found at {htmlTemplatePath}");
+            }
+
+            string htmlContent = await System.IO.File.ReadAllTextAsync(htmlTemplatePath);
+
+            // Replace placeholders in the HTML content with dynamic values
+            htmlContent = htmlContent
+             .Replace("STARTDATE", Convert.ToDateTime(intobj.Date).ToString("dd/MM/yyyy"))
+             .Replace("ENDDATE", Convert.ToDateTime(intobj.EndDuration).ToString("dd/MM/yyyy"))
+                .Replace("UNIT#", intobj.UnitNumber)
+                .Replace("PERMIT#", "PERMIT" + intobj.Id.ToString("D5"))
+                .Replace("CONTRACTORNAME", intobj.ContractorName)
+                .Replace("TRADELICENCE", intobj.TradeLicenceNo)
+                .Replace("CONTRACTORID", "")
+                .Replace("WORKDESCRIPTION", "")
+                .Replace("VILLA#", intobj.UnitNumber)
+                .Replace("TYPEOFWORK", "")
+                .Replace("APPROVALBY", approvalby)
+                .Replace("AREAOFWORK", intobj.InternalWork)
+                .Replace("SPECIALCOMMENTS", comments);
+
+            // Save the updated HTML content to a temporary file
+            string tempHtmlFilePath = Path.Combine(uploadsDirectory, $"workpermit_{workflowStepId}.html");
+            await System.IO.File.WriteAllTextAsync(tempHtmlFilePath, htmlContent);
+
+            try
+            {
+                // Generate PDF using PdfGenerator
+                var pdfGenerator = new PdfGenerator();
+                pdfGenerator.GeneratePdf(tempHtmlFilePath, pdfPath);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error generating PDF: {ex.Message}");
+                throw new Exception($"Failed to generate the PDF for workflowStepId {workflowStepId}", ex);
+            }
+            finally
+            {
+                // Clean up temporary HTML file
+                if (System.IO.File.Exists(tempHtmlFilePath))
+                {
+                    System.IO.File.Delete(tempHtmlFilePath);
+                }
+            }
+
+            // Return the file path of the saved PDF
+            return pdfPath;
+        }
+
+
         [HttpPost("ReturnWorkFlowStepAction")]
         public async Task<bool> ReturnWorkFlowStepAction(int WorkflowStepId, StepAction stepAction)
         {
@@ -1245,6 +1466,165 @@ namespace WAS_Management.Controllers
         {
             return await _context.Users.ToListAsync();
         }
+
+
+
+        public async System.Threading.Tasks.Task SendPaymentConfirmationEmail(string email, string comment, string? pdfFilePath = null)
+        {
+            try
+            {
+                // Initialize SMTP client with configuration
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    EnableSsl = true,
+                };
+
+                // Create the email message
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = "Invoice and Payment Receipt",
+                    Body = $"Dear Sir,\n\n{comment}.\n\nRegards,\nAlHamra Team",
+                    IsBodyHtml = false,
+                };
+
+                // Add recipient
+                mailMessage.To.Add(email);
+
+                // Attach the PDF file if the file path is provided
+                if (!string.IsNullOrEmpty(pdfFilePath) && System.IO.File.Exists(pdfFilePath))
+                {
+                    var pdfAttachment = new Attachment(pdfFilePath, "application/pdf");
+                    mailMessage.Attachments.Add(pdfAttachment);
+                }
+
+                // Send the email
+                await smtpClient.SendMailAsync(mailMessage);
+            }
+            catch (Exception ex)
+            {
+                // Log or handle exceptions as needed
+                Console.WriteLine($"Error sending email: {ex.Message}");
+                throw;
+            }
+        }
+
+
+        public async System.Threading.Tasks.Task SendInvoiceAndReceiptEmail(string email, IFormFileCollection? files)
+        {
+            try
+            {
+                // Initialize SMTP client with configuration
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    EnableSsl = true,
+                };
+
+                // Create the email message
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = "Invoice and Payment Receipt",
+                    Body = "Dear Sir,\n\nAttached is the Invoice and Payment Receipt.\n\nRegards,\nAlHamra Team",
+                    IsBodyHtml = false,
+                };
+
+                // Add recipient
+                mailMessage.To.Add(email);
+
+
+                if (files != null && files.Count > 0)
+                {
+                    foreach (var file in files)
+                    {
+                        if (file.Length > 0)
+                        {
+                            // Get the upload path from appsettings.json
+                            var uploadPath = _configuration.GetValue<string>("upload:path");
+
+                            // Combine with the current directory to get the full path
+                            var fullPath = Path.Combine(Directory.GetCurrentDirectory(), uploadPath);
+
+                            // Ensure the directory exists
+                            if (!Directory.Exists(fullPath))
+                            {
+                                Directory.CreateDirectory(fullPath);
+                            }
+
+                            // Generate a unique file name to avoid overwriting
+                            var fileName = Path.GetRandomFileName() + Path.GetExtension(file.FileName);
+                            var originalFileName = Path.GetFileName(file.FileName);
+                            var filePath = Path.Combine(fullPath, originalFileName);
+
+                            // Save the file to the specified path
+                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            {
+                                await file.CopyToAsync(stream);
+                            }
+
+                            // Determine the MIME type of the file
+                            var mimeType = file.ContentType; // Use the MIME type from the uploaded file
+
+                            // Attach the file to the email with a valid MIME type
+                            mailMessage.Attachments.Add(new Attachment(filePath, mimeType));
+                        }
+                    }
+                }
+
+                // Send the email
+                await smtpClient.SendMailAsync(mailMessage);
+            }
+            catch (Exception ex)
+            {
+                // Log or handle exceptions as needed
+                Console.WriteLine($"Error sending email: {ex.Message}");
+                throw;
+            }
+        }
+
+
+
+        public async System.Threading.Tasks.Task SendPaymentEmailToCustomer(string customerName, string modificationFee, string customerEmail)
+        {
+            try
+            {
+                // Initialize SMTP client with configuration
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    EnableSsl = true,
+                };
+
+                // Create the email message
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = "Payment Request",
+                    Body = $"Dear {customerName},\n\nWe are pleased to inform you that your modification request is being reviewed and finalized for approval. Below, you will find the payment details for the associated fees:\n\u2022 Modification fee: AED {modificationFee}/-\n\nKindly make the payments at the Al Hamra Community Office. \n\nN.B.: All payments towards the unit (utilities, community fees, etc.) must be cleared and up to date at all times, in order to process approvals and work permits. \n\nNOTE:  No changes to fire, safety, or HVAC systems are allowed without approval from AMC contractors. Any damage caused by work done without approval or by unapproved contractors will be penalized.\n\nNotify the Neighbors who can be affected if there is any noisy work.\n\nBest Regards,\nPROPERTY MANAGEMENT\nAL HAMRA",
+                    IsBodyHtml = false,
+                };
+
+                // Add recipient
+                mailMessage.To.Add(customerEmail);
+
+                // Send the email
+                await smtpClient.SendMailAsync(mailMessage);
+            }
+            catch (Exception ex)
+            {
+                // Log or handle exceptions as needed
+                Console.WriteLine($"Error sending email: {ex.Message}");
+                throw;
+            }
+        }
+
+
+
         private async System.Threading.Tasks.Task SendModificationEmail(User user)
         {
             var smtpClient = new SmtpClient(_configuration["Mail:Host"])
@@ -1287,6 +1667,8 @@ namespace WAS_Management.Controllers
 
             await smtpClient.SendMailAsync(mailMessage);
         }
+
+
         private async Task<StepAction> ConvertformDataToStepAction(IFormCollection formData)
         {
             StepAction stepAction = new StepAction();

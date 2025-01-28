@@ -77,6 +77,12 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+
+//var uploadsDirectory = builder.Configuration.GetValue<string>("dllpaths:libwkhtmltox");
+//var context = new CustomAssemblyLoadContext();
+//context.LoadUnmanagedLibrary(uploadsDirectory);
+
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -101,6 +107,8 @@ app.UseSwaggerUI(c =>
 {
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
 });
+
+app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());

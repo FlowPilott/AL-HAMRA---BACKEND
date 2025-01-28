@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alterations Permit</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: white;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 1px solid #ddd;
+        }
+
+        .header {
+            background-color: #cc0000;
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-title {
+            font-size: 42px;
+            font-weight: normal;
+            margin: 0;
+        }
+
+        .header-right {
+            text-align: center;
+        }
+
+            .header-right img {
+                width: 60px;
+                height: 60px;
+                margin-bottom: 10px;
+            }
+
+        .property-management {
+            color: white;
+            font-size: 16px;
+            margin: 0;
+            padding-top: 8px;
+            text-align: center;
+        }
+
+        .unit-info {
+            background-color: white;
+            color: red;
+            text-align: center;
+            padding: 10px 80px 10px 10px !important;
+            padding-right: 5px;
+            border: 1px solid red;
+            border-radius: 12px;
+            margin-top: 10px;
+        }
+
+        /* .date-container {
+            display: flex;
+            margin-top: 5px;
+            gap: 10px;
+        } */
+        .date-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            margin-top: 5px;
+            background-color: #cc0000;
+        }
+
+        .date-box {
+            background-color: #cc0000;
+            color: white;
+            padding: 10px;
+            flex: 1;
+            text-align: center;
+            margin: 0 1px;
+        }
+
+        .top {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-top: 10px;
+            gap: 5px;
+            width: 100%;
+            max-width: 800px;
+            /* Adjust this value based on your design needs */
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .heading1,
+        .heading2 {
+            background-color: #cc0000;
+            padding: 10px;
+            flex: 1;
+            text-align: center;
+            color: white;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+
+
+
+        /* .form-content {
+            padding: 20px;
+        } */
+
+        .form-row {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+            padding: 17px 5px;
+            gap: 10px;
+        }
+
+        .form-label {
+            width: 150px;
+            color: black;
+            font-weight: 200;
+        }
+
+        .form-value {
+            flex: 1;
+        }
+
+        .contractor-id {
+            padding-left: 200px;
+        }
+
+        .section-title {
+            color: #cc0000;
+            font-weight: bold;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        .line-container {
+            display: flex;
+            flex-direction: column;
+            /* Stack items vertically */
+            gap: 10px;
+            /* Add space between lines */
+            width: 100%;
+            /* Ensure the container is full width */
+        }
+
+        .line {
+            background-color: #ff5757;
+            /* Red color for the bars */
+            height: 40px;
+            /* Height of each line */
+            width: 100%;
+            /* Full width */
+            margin-bottom: 30px;
+            border: 1px solid black;
+            /* Optional: Add border to match the design */
+        }
+
+        .section-titles {
+            margin-top: 70px;
+            background-color: #cc0000;
+            color: white;
+            font-size: 20px;
+            padding: 15px;
+            font-weight: 5px;
+            border: 1px solid #cc0000;
+        }
+
+        .div {
+            border-bottom: 2px solid #ddd;
+        }
+
+        .last-text {
+            font: 900;
+            font-weight: 1000;
+            margin-bottom: 10px;
+        }
+
+
+
+
+        @media print {
+            body {
+                padding: 0;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .container {
+                border: none;
+            }
+
+            .header,
+            .date-container,
+            .date-box {
+                background-color: #cc0000 !important;
+                display: flex;
+                gap: 3px;
+                color: white !important;
+            }
+
+            /* .line-container {
+        gap: 20px; /* Ensure gap is consistent in print mode */
+        }
+
+        .line {
+            background-color: #ff5757;
+            /* Ensure the same color in print mode */
+            border: 1px solid black;
+            /* Ensure the border is visible in print */
+        }
+
+        .form-rows {
+            border-bottom: none !important;
+        }
+
+        .section-titled {
+            font-weight: 300 !important;
+        }
+
+        .form-valued {
+            padding-left: 40px;
+        }
+
+
+        .form-rowed {
+            border-top: none !important;
+        }
+
+        .whole {
+            border: none;
+        }
+
+        .black {
+            color: black !important;
+        }
+
+        .topest {
+            color: #ff5757 !important;
+            font-size: large !important;
+        }
+
+        .values {
+            font-size: large !important;
+        }
+
+        .abc {
+            border-bottom: none !important;
+            font-weight: 100;
+        }
+
+        .last-texted {
+            border-top: none !important;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container whole">
+        <div class="header">
+            <div>
+                <h1 class="header-title">ALTERATIONS PERMIT</h1>
+                <button class="unit-info">
+                    UNIT NO : UNIT#
+                </button>
+            </div>
+            <div class="header-right">
+                <svg width="80" height="80" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 65.47 75.87">
+                    <defs>
+                        <style>
+                            .cls-1 {
+                                fill: #fff;
+                            }
+
+                            .cls-2 {
+                                fill: #fff;
+                            }
+
+                            .cls-3 {
+                                fill: #fff;
+                            }
+
+                            .cls-4 {
+                                fill: #fff;
+                            }
+
+                            .cls-5 {
+                                fill: #fff;
+                            }
+                        </style>
+                    </defs>
+                    <g id="Layer_2" data-name="Layer 2">
+                        <g id="Layer_1-2" data-name="Layer 1">
+                            <polygon class="cls-1"
+                                     points="25.84 38.72 10.04 55.26 25.99 55.26 30.82 43.94 25.84 38.72" />
+                            <polygon class="cls-1"
+                                     points="40.01 48.53 33.05 38.72 30.82 43.95 38.52 52.01 40.01 48.53" />
+                            <polygon class="cls-1"
+                                     points="30.82 43.94 25.99 55.26 37.13 55.26 38.52 52.01 30.82 43.94" />
+                            <polygon class="cls-2"
+                                     points="30.82 43.94 25.99 55.26 37.13 55.26 38.52 52.01 30.82 43.94" />
+                            <polygon class="cls-1" points="43.28 50.3 40.76 46.75 40.01 48.53 42.41 51.92 43.28 50.3" />
+                            <polygon class="cls-2"
+                                     points="40.99 54.59 42.41 51.92 40.01 48.53 38.52 52.01 40.99 54.59" />
+                            <polygon class="cls-1"
+                                     points="38.52 52.01 37.13 55.26 40.63 55.26 40.99 54.59 38.52 52.01" />
+                            <polygon class="cls-3"
+                                     points="38.52 52.01 37.13 55.26 40.63 55.26 40.99 54.59 38.52 52.01" />
+                            <polygon class="cls-1"
+                                     points="46.46 50.93 44.27 48.45 43.28 50.3 44.99 52.71 46.46 50.93" />
+                            <polygon class="cls-2" points="43.9 54.02 44.99 52.71 43.28 50.3 42.41 51.92 43.9 54.02" />
+                            <polygon class="cls-3"
+                                     points="42.41 51.92 40.99 54.59 41.63 55.26 42.88 55.26 43.9 54.02 42.41 51.92" />
+                            <polygon class="cls-1" points="40.63 55.26 41.63 55.26 40.99 54.59 40.63 55.26" />
+                            <polygon class="cls-4"
+                                     points="40.99 54.59 40.99 54.59 40.63 55.26 41.63 55.26 40.99 54.59" />
+                            <polygon class="cls-5" points="40.63 55.26 41.63 55.26 40.99 54.59 40.63 55.26" />
+                            <polygon class="cls-1"
+                                     points="47.59 49.56 46.46 50.93 50.3 55.26 55.43 55.26 47.59 49.56" />
+                            <polygon class="cls-2" points="44.99 52.71 46.8 55.26 50.3 55.26 46.46 50.93 44.99 52.71" />
+                            <polygon class="cls-3" points="43.9 54.02 44.79 55.26 46.8 55.26 44.99 52.71 43.9 54.02" />
+                            <polygon class="cls-4" points="43.9 54.02 43.9 54.02 42.88 55.26 44.79 55.26 43.9 54.02" />
+                            <polygon class="cls-5" points="42.88 55.26 44.79 55.26 43.9 54.02 42.88 55.26" />
+                            <path class="cls-1" d="M7,58.49H58.49V7H7Zm58.49,7H0V0H65.47Z" />
+                            <path class="cls-1"
+                                  d="M9.64,73.6l-.05.13h1l0-.1-.48-1.24ZM11.15,75H9l-.35.84H7.07L9.55,70.1h1.08l2.58,5.77H11.5Z" />
+                            <polygon class="cls-1"
+                                     points="17.04 74.52 19.64 74.52 19.64 75.87 15.52 75.87 15.52 70.16 17.04 70.16 17.04 74.52" />
+                            <polygon class="cls-1"
+                                     points="23.52 72.31 25.15 72.31 25.15 70.16 26.67 70.16 26.67 75.87 25.15 75.87 25.15 73.66 23.52 73.66 23.52 75.87 22.01 75.87 22.01 70.16 23.52 70.16 23.52 72.31" />
+                            <path class="cls-1"
+                                  d="M31.49,73.6l0,.13h1l0-.1L32,72.39ZM33,75H30.89l-.34.84H28.93l2.48-5.77h1.08l2.57,5.77H33.35Z" />
+                            <polygon class="cls-1"
+                                     points="38.9 75.87 37.38 75.87 37.38 70.16 38.59 70.16 40.22 72.37 41.85 70.16 43.03 70.16 43.03 75.87 41.53 75.87 41.53 73.05 40.63 74.26 39.79 74.26 38.9 73.03 38.9 75.87" />
+                            <path class="cls-1"
+                                  d="M46.93,72.67h.87a.59.59,0,1,0,0-1.17h-.87Zm0,1.26v1.94H45.42V70.16h2.41a1.89,1.89,0,0,1,.92,3.64l1.33,1.81v.26H48.47l-1.29-1.94Z" />
+                            <path class="cls-1"
+                                  d="M54.84,73.6l-.05.13h1l0-.1-.47-1.24ZM56.36,75H54.24l-.34.84H52.28l2.48-5.77h1.08l2.57,5.77H56.7Z" />
+                        </g>
+                    </g>
+                </svg>
+                <p class="property-management">PROPERTY<br>MANAGEMENT</p>
+            </div>
+        </div>
+
+
+
+        <div class="top">
+            <div class="heading1">Start: STARTDATE</div>
+            <div class="heading2">End: ENDDATE</div>
+        </div>
+
+        <div class="form-content">
+            <div class="form-row">
+                <div class="form-label topest">PERMIT NO</div>
+                <div class="form-value values">PERMIT#</div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-label black">Contractor</div>
+                <div class="form-value">CONTRACTORNAME</div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-label black">Trade Licence</div>
+                <div class="form-value">
+                    TRADELICENCE
+                    <span class="contractor-id">Contractor ID: CONTRACTORID</span>
+                </div>
+            </div>
+
+            <div class="form-row form-rows">
+                <div class="form-label black">Work Description:</div>
+                <div class="form-value">WORKDESCRIPTION</div>
+            </div>
+
+            <div class="section-title  section-titled">PROJECT INFORMATION</div>
+            <!--<div class="form-row">
+                <div class="">Building</div>
+                <div class="form-value"></div>
+            </div>-->
+
+            <div class="form-row">
+                <div class="">Villa / Apartment no : VILLA#</div>
+
+
+            </div>
+
+            <div class="form-row">
+                <div class="">Type of Work:</div>
+                <div class="form-value"> TYPEOFWORK</div>
+            </div>
+
+            <div class="section-title abc">GENERAL CONDITIONS</div>
+
+            <div class="line-container">
+                <div class="line"></div>
+                <div class="line"></div>
+                <div class="line"></div>
+            </div>
+
+
+            <button class="section-titles">APPROVAL BY : APPROVALBY</button>
+            <div class="div"></div>
+            <div class="form-row">
+                <div class="">Special comments:</div>
+                <div class="form-value">
+                    SPECIALCOMMENTS
+                </div>
+            </div>
+
+            <div class="form-row form-rowed">
+                <div class="">Area of work:</div>
+                <div class="form-value form-valued">AREAOFWORK</div>
+            </div>
+
+            <div class="last-text last-texted">AL HAMRA PROPERTY MANAGEMENT DEVELOPMENT CONTROL</div>
+            <img src="stamp.png" width="150" height="150">
+        </div>
+    </div>
+</body>
+
+</html>

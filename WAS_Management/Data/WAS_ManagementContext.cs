@@ -19,6 +19,8 @@ public partial class WAS_ManagementContext : DbContext
 
     public virtual DbSet<Contractor> Contractors { get; set; }
 
+    public virtual DbSet<ContractorForm> ContractorForms { get; set; }
+
     public virtual DbSet<Interaction> Interactions { get; set; }
 
     public virtual DbSet<StepAction> StepActions { get; set; }
@@ -88,6 +90,39 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.ThirdPartyLiability)
                 .HasMaxLength(255)
                 .HasColumnName("third_party_liability");
+        });
+
+        modelBuilder.Entity<ContractorForm>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("contractor_forms");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Company)
+                .HasMaxLength(255)
+                .HasColumnName("company");
+            entity.Property(e => e.Contact)
+                .HasMaxLength(255)
+                .HasColumnName("contact");
+            entity.Property(e => e.Email)
+                .HasMaxLength(50)
+                .HasColumnName("email");
+            entity.Property(e => e.EmiratesId)
+                .HasMaxLength(255)
+                .HasColumnName("emirates_id");
+            entity.Property(e => e.Name)
+                .HasMaxLength(50)
+                .HasColumnName("name");
+            entity.Property(e => e.ThirdPartyLiability)
+                .HasMaxLength(255)
+                .HasColumnName("third_party_liability");
+            entity.Property(e => e.TradeLicence)
+                .HasMaxLength(255)
+                .HasColumnName("trade_licence");
+            entity.Property(e => e.VehicleRegistration)
+                .HasMaxLength(255)
+                .HasColumnName("vehicle_registration");
         });
 
         modelBuilder.Entity<Interaction>(entity =>
@@ -184,6 +219,9 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.TradeLicence)
                 .HasMaxLength(255)
                 .HasColumnName("trade_licence");
+            entity.Property(e => e.TradeLicenceNo)
+                .HasMaxLength(255)
+                .HasColumnName("trade_licence_no");
             entity.Property(e => e.TypeOfInteraction)
                 .HasMaxLength(255)
                 .HasColumnName("type_of_interaction");
@@ -208,6 +246,7 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.ActionType)
                 .HasColumnType("enum('RFI','Reassign','Return Step','Submit')")
                 .HasColumnName("action_type");
+            entity.Property(e => e.Answer).HasMaxLength(255);
             entity.Property(e => e.ApprovalEndDate).HasColumnType("datetime");
             entity.Property(e => e.ApprovalStartDate).HasColumnType("datetime");
             entity.Property(e => e.AssignTo).HasColumnName("assignTo");
