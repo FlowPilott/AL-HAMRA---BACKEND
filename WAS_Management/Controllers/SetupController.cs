@@ -55,5 +55,43 @@ namespace WAS_Management.Controllers
         }
 
 
+
+
+
+        [HttpGet("GetInteractionTypes")]
+        public async Task<ActionResult<IEnumerable<InteractionType>>> GetInteractionTypes()
+        {
+            // Start by getting all records
+            var query = await _context.InteractionTypes.ToListAsync();
+
+            return query;
+        }
+
+
+
+        [HttpPost("AddInteractionType/{name}")]
+        public async Task<ActionResult<bool>> AddInteractionType(string name)
+        {
+            try
+            {
+                InteractionType intr = new InteractionType()
+                {
+                    Name = name
+                };
+
+                _context.InteractionTypes.Add(intr);
+                await _context.SaveChangesAsync();
+
+                return true;
+
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+
+        }
+
+
     }
 }

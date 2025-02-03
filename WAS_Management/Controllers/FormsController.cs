@@ -158,8 +158,11 @@ namespace WAS_Management.Controllers
                             case "thirdPartyLiabilityInsuranceCertificate":
                                 interaction.ThirdPartyLiabilityCert = filePath;
                                 break;
-                            case "Current&ProposedLayoutDrawing":
-                                interaction.CurrentProposedLayout = filePath;
+                            case "CurrentLayoutDrawing":
+                                interaction.CurrentLayout = filePath;
+                                break;
+                            case "ProposedLayoutDrawing":
+                                interaction.ProposedLayout = filePath;
                                 break;
                         }
                     }
@@ -184,11 +187,20 @@ namespace WAS_Management.Controllers
             interaction.InternalWork = intwork;
             interaction.ContractorRepName = formData["ContractorRepName"];
             interaction.ContractorName = formData["ContractorName"];
-            interaction.ContractorCompName = formData["ContractorCompName"];
+            //interaction.ContractorCompName = formData["contractingCompName"];
             interaction.ContractorContact = formData["ContractorContact"];
             interaction.ContractorEmail = formData["ContractorEmail"];
-            interaction.ContractorComp = formData["ContractorComp"];
+
+            if (formData["contractingCompName"] == "Other")
+            {
+                interaction.ContractorCompName = formData["companyName"];
+            }
+            else
+            {
+                interaction.ContractorCompName = formData["contractingCompName"];
+            }
             interaction.CustomerName = formData["CustomerName"];
+            interaction.TradeLicenceNo = formData["trade_licence_no"];
 
 
             await _context.SaveChangesAsync();

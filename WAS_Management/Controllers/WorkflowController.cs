@@ -231,54 +231,52 @@ namespace WAS_Management.Controllers
                 return NotFound("No documents found for the given workflow.");
             }
 
-            // Create a memory stream for the ZIP archive
-            using (var memoryStream = new MemoryStream())
+            // Create a memory stream for the ZIP archive (DO NOT use `using`)
+            var memoryStream = new MemoryStream();
+
+            try
             {
-                try
+                // Create the ZIP archive
+                using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
                 {
-                    // Create the ZIP archive
-                    using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
+                    foreach (var document in documents)
                     {
-                        foreach (var document in documents)
+                        var filePath = document.DocumentPath;
+
+                        // Skip files that don't exist
+                        if (string.IsNullOrEmpty(filePath) || !System.IO.File.Exists(filePath))
                         {
-                            var filePath = document.DocumentPath;
+                            continue;
+                        }
 
-                            // Skip files that don't exist
-                            if (string.IsNullOrEmpty(filePath) || !System.IO.File.Exists(filePath))
-                            {
-                                continue;
-                            }
+                        // Add each existing file to the ZIP archive
+                        var entryName = string.IsNullOrEmpty(document.DocumentName)
+                            ? Path.GetFileName(filePath)
+                            : document.DocumentName;
 
-                            // Add each existing file to the ZIP archive
-                            var entryName = string.IsNullOrEmpty(document.DocumentName)
-                                ? Path.GetFileName(filePath)
-                                : document.DocumentName;
+                        var entry = archive.CreateEntry(entryName, CompressionLevel.Fastest);
 
-                            var entry = archive.CreateEntry(entryName, CompressionLevel.Fastest);
-
-                            using (var entryStream = entry.Open())
-                            using (var fileStream = System.IO.File.OpenRead(filePath))
-                            {
-                                await fileStream.CopyToAsync(entryStream);
-                            }
+                        using (var entryStream = entry.Open())
+                        using (var fileStream = System.IO.File.OpenRead(filePath))
+                        {
+                            await fileStream.CopyToAsync(entryStream);
                         }
                     }
-
-                    // Reset the memory stream position to the beginning before returning it
-                    memoryStream.Position = 0;
-
-                    // Define a filename for the ZIP file
-                    var zipFileName = $"Workflow_{workflowId}_Documents.zip";
-
-                    // Return the ZIP file as a downloadable file
-                    return File(memoryStream, "application/zip", zipFileName);
                 }
-                catch (Exception ex)
-                {
-                    // Log the exception as needed
-                    // Example: _logger.LogError(ex, "Error while creating ZIP archive");
-                    return StatusCode(500, $"An error occurred while creating the ZIP archive: {ex.Message}");
-                }
+
+                // Reset the memory stream position to the beginning before returning it
+                memoryStream.Position = 0;
+
+                // Define a filename for the ZIP file
+                var zipFileName = $"Workflow_{workflowId}_Documents.zip";
+
+                // Return the ZIP file as a downloadable file (DO NOT wrap memoryStream in `using`)
+                return File(memoryStream, "application/zip", zipFileName);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception as needed
+                return StatusCode(500, $"An error occurred while creating the ZIP archive: {ex.Message}");
             }
         }
 
@@ -347,7 +345,7 @@ namespace WAS_Management.Controllers
             }
             else if (docname == "currentProposedLayout")
             {
-                docppath = interactions.CurrentProposedLayout;
+                docppath = interactions.CurrentLayout;
             }
 
             // 2. Check if the document exists
@@ -1099,15 +1097,22 @@ namespace WAS_Management.Controllers
 
             string htmlContent = await System.IO.File.ReadAllTextAsync(htmlTemplatePath);
 
-            // Replace placeholders in the HTML content with dynamic values
+            var contractorid = await _context.Contractors.Where(x => x.Name == intobj.ContractorCompName).FirstOrDefaultAsync();
+
+            string contid = "";
+            if (contractorid != null)
+            {
+                contid = contractorid.Id.ToString();
+            }
+
             htmlContent = htmlContent
              .Replace("STARTDATE", Convert.ToDateTime(intobj.Date).ToString("dd/MM/yyyy"))
              .Replace("ENDDATE", Convert.ToDateTime(intobj.EndDuration).ToString("dd/MM/yyyy"))
                 .Replace("UNIT#", intobj.UnitNumber)
                 .Replace("PERMIT#", "PERMIT" + intobj.Id.ToString("D5"))
-                .Replace("CONTRACTORNAME", intobj.ContractorName)
+                .Replace("CONTRACTORNAME", intobj.ContractorCompName)
                 .Replace("TRADELICENCE", intobj.TradeLicenceNo)
-                .Replace("CONTRACTORID", "")
+                .Replace("CONTRACTORID", contid)
                 .Replace("WORKDESCRIPTION", "")
                 .Replace("VILLA#", intobj.UnitNumber)
                 .Replace("TYPEOFWORK", "")
@@ -1226,7 +1231,7 @@ namespace WAS_Management.Controllers
                 string jsonString = JsonSerializer.Serialize(deserializedData, new JsonSerializerOptions { WriteIndented = true });
                 string jsonString2 = JsonSerializer.Serialize(deserializedData2, new JsonSerializerOptions { WriteIndented = true });
                 workflowstep.AssignedTo = u_currentstepjson;
-                //workflowstep.Details = jsonString2;
+                workflowstep.Details = jsonString2;
                 // workflowstep.ExecutedOn = DateTime.Now;
                 workflowstep.Status = "Not Started";
                 await _context.SaveChangesAsync();
@@ -1266,6 +1271,7 @@ namespace WAS_Management.Controllers
 
                 var query = from ut in _context.UserTasks
                             join wf in _context.Workflows on ut.WorkflowId equals wf.Id
+                            join ws in _context.WorkflowSteps on ut.StepId equals ws.Id
                             where ut.AssignedTo == userid
                             select new
                             {
@@ -1276,6 +1282,8 @@ namespace WAS_Management.Controllers
                                 ut.Department,
                                 ut.Template,
                                 ut.DueDate,
+                                ws.ReceivedOn,
+                                ws.DueOn,
                                 ut.Ageing,
                                 ut.Status,
                                 ut.AssignedTo,
@@ -1296,6 +1304,8 @@ namespace WAS_Management.Controllers
                     Department = item.Department,
                     Template = item.Template,
                     DueDate = item.DueDate,
+                    ReceivedOn = item.ReceivedOn,
+                    DueOn = item.DueOn,
                     Ageing = CalculateAgeing(item.DueDate),
                     Status = item.Status,
                     AssignedTo = item.AssignedTo,
@@ -1449,7 +1459,7 @@ namespace WAS_Management.Controllers
 
                 WorkFlowVMobj.InterationData = tasklst;
 
-
+                WorkFlowVMobj.Identifier = GenerateFormattedId(interactionid);
                 return WorkFlowVMobj;
             }
             catch (Exception ex)

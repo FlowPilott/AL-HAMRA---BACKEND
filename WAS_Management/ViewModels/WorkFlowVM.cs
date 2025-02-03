@@ -43,6 +43,7 @@ namespace WAS_Management.ViewModels
         public string? WorkflowTypeName { get; set; }
         public string? InitiatorName { get; set; }
         public string? Department { get; set; }
+        public string? Identifier { get; set; }
 
         public IEnumerable<WorkFlowStepVM> workFlowStepVMs { get; set; }
         public IEnumerable<WorkflowDocument> Documents { get; set; }

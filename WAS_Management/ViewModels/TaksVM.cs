@@ -16,6 +16,10 @@
 
         public DateTime? DueDate { get; set; }
 
+        public DateTime? ReceivedOn { get; set; }
+
+        public DateTime? DueOn { get; set; }
+
         public int? Ageing { get; set; }
 
         public string? Status { get; set; }

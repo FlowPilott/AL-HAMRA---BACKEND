@@ -23,6 +23,8 @@ public partial class WAS_ManagementContext : DbContext
 
     public virtual DbSet<Interaction> Interactions { get; set; }
 
+    public virtual DbSet<InteractionType> InteractionTypes { get; set; }
+
     public virtual DbSet<StepAction> StepActions { get; set; }
 
     public virtual DbSet<Unit> Units { get; set; }
@@ -159,9 +161,9 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.ContractorRepName)
                 .HasMaxLength(255)
                 .HasColumnName("contractor_rep_name");
-            entity.Property(e => e.CurrentProposedLayout)
+            entity.Property(e => e.CurrentLayout)
                 .HasMaxLength(255)
-                .HasColumnName("current_proposed_layout");
+                .HasColumnName("current_layout");
             entity.Property(e => e.CustomerName)
                 .HasMaxLength(255)
                 .HasColumnName("customer_name");
@@ -201,6 +203,9 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.PropertyType)
                 .HasMaxLength(255)
                 .HasColumnName("property_type");
+            entity.Property(e => e.ProposedLayout)
+                .HasMaxLength(255)
+                .HasColumnName("proposed_layout");
             entity.Property(e => e.PurposeOfInteraction)
                 .HasMaxLength(255)
                 .HasColumnName("purpose_of_interaction");
@@ -234,6 +239,18 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.WorkType)
                 .HasMaxLength(255)
                 .HasColumnName("work_type");
+        });
+
+        modelBuilder.Entity<InteractionType>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("interaction_types");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Name)
+                .HasMaxLength(50)
+                .HasColumnName("name");
         });
 
         modelBuilder.Entity<StepAction>(entity =>

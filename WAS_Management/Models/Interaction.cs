@@ -67,7 +67,9 @@ public partial class Interaction
 
     public string? ThirdPartyLiabilityCert { get; set; }
 
-    public string? CurrentProposedLayout { get; set; }
+    public string? CurrentLayout { get; set; }
+
+    public string? ProposedLayout { get; set; }
 
     public DateTime? StartDuration { get; set; }
 
