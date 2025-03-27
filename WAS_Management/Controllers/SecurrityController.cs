@@ -81,10 +81,10 @@ namespace WAS_Management.Controllers
                 // Error response
                 var errorData = new
                 {
-                    Result = "",
+                    Result = ex.Message,
                     ErrorCode = "500",
                     ErrorMessage = "An unexpected error occurred.",
-                    Data = ""
+                    Data = ex.InnerException != null ? ex.InnerException.Message : ""
                 };
                 return new JsonResult(errorData);
             }

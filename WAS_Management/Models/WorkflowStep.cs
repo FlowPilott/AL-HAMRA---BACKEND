@@ -30,4 +30,6 @@ public partial class WorkflowStep
     public string? Actiondetails { get; set; }
 
     public int? ApprovedBy { get; set; }
+
+    public int? TaskId { get; set; }
 }

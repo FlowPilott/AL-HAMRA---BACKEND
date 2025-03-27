@@ -25,6 +25,8 @@ public partial class WAS_ManagementContext : DbContext
 
     public virtual DbSet<InteractionType> InteractionTypes { get; set; }
 
+    public virtual DbSet<Resalenoc> Resalenocs { get; set; }
+
     public virtual DbSet<StepAction> StepActions { get; set; }
 
     public virtual DbSet<Unit> Units { get; set; }
@@ -42,7 +44,7 @@ public partial class WAS_ManagementContext : DbContext
     public virtual DbSet<WorkflowType> WorkflowTypes { get; set; }
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseMySql("name=DefaultConnection", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.40-mysql"));
+        => optionsBuilder.UseMySql("name=DefaultConnection", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.41-mysql"));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -57,41 +59,73 @@ public partial class WAS_ManagementContext : DbContext
             entity.ToTable("contractors");
 
             entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Address)
+                .HasMaxLength(255)
+                .HasColumnName("address");
+            entity.Property(e => e.Authorization)
+                .HasMaxLength(255)
+                .HasColumnName("authorization");
+            entity.Property(e => e.Bpnumber)
+                .HasMaxLength(255)
+                .HasColumnName("bpnumber");
+            entity.Property(e => e.Color)
+                .HasMaxLength(255)
+                .HasColumnName("color");
             entity.Property(e => e.CompanyName)
                 .HasMaxLength(255)
                 .HasColumnName("company_name");
-            entity.Property(e => e.Contact)
+            entity.Property(e => e.Companytradelicence)
                 .HasMaxLength(255)
-                .HasColumnName("contact");
-            entity.Property(e => e.ContractorTradeLicence)
+                .HasColumnName("companytradelicence");
+            entity.Property(e => e.CreatedBy)
                 .HasMaxLength(255)
-                .HasColumnName("contractor_trade_licence");
-            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+                .HasColumnName("created_by");
             entity.Property(e => e.CreatedDate)
                 .HasColumnType("datetime")
                 .HasColumnName("created_date");
-            entity.Property(e => e.CurrentProposedLayout)
-                .HasMaxLength(255)
-                .HasColumnName("current_proposed_layout");
             entity.Property(e => e.Email)
                 .HasMaxLength(50)
                 .HasColumnName("email");
-            entity.Property(e => e.EmiratesId)
+            entity.Property(e => e.Emirateid)
                 .HasMaxLength(255)
-                .HasColumnName("emirates_id");
+                .HasColumnName("emirateid");
             entity.Property(e => e.Isactive).HasColumnName("isactive");
-            entity.Property(e => e.Name)
+            entity.Property(e => e.Landlineno)
                 .HasMaxLength(255)
-                .HasColumnName("name");
-            entity.Property(e => e.PaymentOptions)
+                .HasColumnName("landlineno");
+            entity.Property(e => e.Mobileno)
                 .HasMaxLength(255)
-                .HasColumnName("payment_options");
-            entity.Property(e => e.ScopeOfWork)
+                .HasColumnName("mobileno");
+            entity.Property(e => e.Passportid)
                 .HasMaxLength(255)
-                .HasColumnName("scope_of_work");
-            entity.Property(e => e.ThirdPartyLiability)
+                .HasColumnName("passportid");
+            entity.Property(e => e.Paymentoption)
                 .HasMaxLength(255)
-                .HasColumnName("third_party_liability");
+                .HasColumnName("paymentoption");
+            entity.Property(e => e.Placeofissuance)
+                .HasMaxLength(255)
+                .HasColumnName("placeofissuance");
+            entity.Property(e => e.Plateno)
+                .HasMaxLength(255)
+                .HasColumnName("plateno");
+            entity.Property(e => e.Platetype)
+                .HasMaxLength(255)
+                .HasColumnName("platetype");
+            entity.Property(e => e.Previouspermit)
+                .HasMaxLength(255)
+                .HasColumnName("previouspermit");
+            entity.Property(e => e.RenewalDate)
+                .HasColumnType("datetime")
+                .HasColumnName("renewal_date");
+            entity.Property(e => e.Typeofvehicle)
+                .HasMaxLength(255)
+                .HasColumnName("typeofvehicle");
+            entity.Property(e => e.VehiclePic)
+                .HasMaxLength(255)
+                .HasColumnName("vehicle_pic");
+            entity.Property(e => e.VehicleReg)
+                .HasMaxLength(255)
+                .HasColumnName("vehicle_reg");
         });
 
         modelBuilder.Entity<ContractorForm>(entity =>
@@ -192,7 +226,7 @@ public partial class WAS_ManagementContext : DbContext
                 .HasColumnType("datetime")
                 .HasColumnName("follow_up_date");
             entity.Property(e => e.InternalWork)
-                .HasMaxLength(255)
+                .HasColumnType("text")
                 .HasColumnName("internal_work");
             entity.Property(e => e.OwnerName)
                 .HasMaxLength(255)
@@ -251,6 +285,45 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.Name)
                 .HasMaxLength(50)
                 .HasColumnName("name");
+        });
+
+        modelBuilder.Entity<Resalenoc>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("resalenoc");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Contactno)
+                .HasMaxLength(255)
+                .HasColumnName("contactno");
+            entity.Property(e => e.Createdby)
+                .HasMaxLength(255)
+                .HasColumnName("createdby");
+            entity.Property(e => e.Createddate)
+                .HasMaxLength(255)
+                .HasColumnName("createddate");
+            entity.Property(e => e.Customername)
+                .HasMaxLength(255)
+                .HasColumnName("customername");
+            entity.Property(e => e.Email)
+                .HasMaxLength(50)
+                .HasColumnName("email");
+            entity.Property(e => e.Intiatorname)
+                .HasMaxLength(255)
+                .HasColumnName("intiatorname");
+            entity.Property(e => e.Mastercomm)
+                .HasMaxLength(255)
+                .HasColumnName("mastercomm");
+            entity.Property(e => e.Projectname)
+                .HasMaxLength(255)
+                .HasColumnName("projectname");
+            entity.Property(e => e.Subprojectname)
+                .HasMaxLength(255)
+                .HasColumnName("subprojectname");
+            entity.Property(e => e.Unitno)
+                .HasMaxLength(255)
+                .HasColumnName("unitno");
         });
 
         modelBuilder.Entity<StepAction>(entity =>
@@ -368,7 +441,7 @@ public partial class WAS_ManagementContext : DbContext
                 .HasColumnName("status");
             entity.Property(e => e.StepId).HasColumnName("step_id");
             entity.Property(e => e.TaskType)
-                .HasColumnType("enum('Workflow','RFI','Reassigned','Return Step')")
+                .HasColumnType("enum('Workflow','RFI','Reassigned','Return Step','CONTRACTOR REGISTRATION','CONTRACTOR RENEWAL','Resale NOC')")
                 .HasColumnName("task_type");
             entity.Property(e => e.Template)
                 .HasMaxLength(255)
@@ -395,6 +468,7 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.Details)
                 .HasColumnType("json")
                 .HasColumnName("details");
+            entity.Property(e => e.Identifier).HasMaxLength(255);
             entity.Property(e => e.InitiatorId).HasColumnName("initiator_id");
             entity.Property(e => e.InteractionId)
                 .HasMaxLength(255)
@@ -488,6 +562,7 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.StepName)
                 .HasMaxLength(255)
                 .HasColumnName("step_name");
+            entity.Property(e => e.TaskId).HasColumnName("task_id");
             entity.Property(e => e.Type).HasColumnType("text");
             entity.Property(e => e.WorkflowId).HasColumnName("workflow_id");
         });

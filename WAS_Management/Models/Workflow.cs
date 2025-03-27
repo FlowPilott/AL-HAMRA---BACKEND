@@ -40,4 +40,6 @@ public partial class Workflow
     public DateTime? ApprovalEndDate { get; set; }
 
     public string? InteractionId { get; set; }
+
+    public string? Identifier { get; set; }
 }

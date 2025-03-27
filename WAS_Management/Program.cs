@@ -83,6 +83,9 @@ builder.Services.AddSwaggerGen(options =>
 //context.LoadUnmanagedLibrary(uploadsDirectory);
 
 
+builder.WebHost.UseUrls("http://0.0.0.0:6000");
+
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
@@ -108,6 +111,13 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
 });
 
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+
+
 app.UseStaticFiles();
 
 app.UseHttpsRedirection();
@@ -117,5 +127,9 @@ app.UseMiddleware<CustomJwtSecurityMiddleware>();
 app.UseAuthorization();
 
 app.MapControllers();
+
+
+
+
 
 app.Run();

@@ -48,7 +48,8 @@ namespace WAS_Management.ViewModels
         public IEnumerable<WorkFlowStepVM> workFlowStepVMs { get; set; }
         public IEnumerable<WorkflowDocument> Documents { get; set; }
 
-        public IEnumerable<Interaction> InterationData { get; set; }
+        public IEnumerable<object> InterationData { get; set; }
+      
     }
     public class WorkFlowStepVM
     {
@@ -94,6 +95,7 @@ namespace WAS_Management.ViewModels
         // New property to hold the answer
         public string Answer { get; set; }
         public string Files { get; set; }
+        public string TaskId { get; set; }
     }
 
 

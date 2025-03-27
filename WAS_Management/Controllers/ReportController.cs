@@ -25,34 +25,43 @@ namespace WAS_Management.Controllers
        string? interactionType = null,
        string? customerName = null,
        string? unitNumber = null,
+       string? typeOfInteraction = null,
        int page = 1,
        int pageSize = 20)
         {
+
+            
             IQueryable<Interaction> query = _context.Interactions.AsQueryable();
 
             // Apply filters if provided
             if (!string.IsNullOrEmpty(interactionType))
             {
-                query = query.Where(i => i.TypeOfInteraction != null &&
-                                         i.TypeOfInteraction.ToLower().Contains(interactionType.ToLower()));
+                query = query.Where(i => i.PurposeOfInteraction != null &&
+                                         i.PurposeOfInteraction.Trim().ToLower().Contains(interactionType.Trim().ToLower()));
             }
 
             if (!string.IsNullOrEmpty(customerName))
             {
                 query = query.Where(i => i.CustomerName != null &&
-                                         i.CustomerName.ToLower().Contains(customerName.ToLower()));
+                                         i.CustomerName.Trim().ToLower().Contains(customerName.Trim().ToLower()));
             }
 
             if (!string.IsNullOrEmpty(unitNumber))
             {
                 query = query.Where(i => i.UnitNumber != null &&
-                                         i.UnitNumber.ToLower().Contains(unitNumber.ToLower()));
+                                         i.UnitNumber.Trim().ToLower().Contains(unitNumber.Trim().ToLower()));
+            }
+
+            if (!string.IsNullOrEmpty(typeOfInteraction))
+            {
+                query = query.Where(i => i.TypeOfInteraction != null &&
+                                         i.TypeOfInteraction.Trim().ToLower().Contains(typeOfInteraction.Trim().ToLower()));
             }
 
             // Pagination
             var skip = (page - 1) * pageSize;
             var results = await query
-                .OrderBy(i => i.Id) // Change ordering if needed
+                .OrderByDescending(i => i.Id) // Change ordering if needed
                 .Skip(skip)
                 .Take(pageSize)
                 .ToListAsync();

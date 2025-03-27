@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WAS_Management.Data;
 using WAS_Management.Models;
@@ -21,6 +22,7 @@ namespace WAS_Management.Controllers
 
 
         [HttpGet("units")]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<Unit>>> GetUnits(
       string? searchTerm = null,
       int page = 1,
@@ -53,6 +55,76 @@ namespace WAS_Management.Controllers
 
             return results;
         }
+
+        [HttpGet("contractors")]
+        public async Task<ActionResult<IEnumerable<Contractor>>> GetContractors(
+    string? searchTerm = null,
+    int page = 1,
+    int pageSize = 20)
+        {
+            // Start by getting all records
+            IQueryable<Contractor> query = _context.Contractors.AsQueryable();
+
+            // If there's a search term, filter by it
+            if (!string.IsNullOrEmpty(searchTerm))
+            {
+                var lowerTerm = searchTerm.ToLower();
+
+                query = query.Where(c =>
+                    (c.CompanyName != null && c.CompanyName.ToLower().Contains(lowerTerm)) ||
+                    (c.Email != null && c.Email.ToLower().Contains(lowerTerm)) ||
+                    (c.Mobileno != null && c.Mobileno.ToLower().Contains(lowerTerm)) ||
+                    (c.Landlineno != null && c.Landlineno.ToLower().Contains(lowerTerm)) ||
+                    (c.Address != null && c.Address.ToLower().Contains(lowerTerm)) ||
+                    (c.Bpnumber != null && c.Bpnumber.ToLower().Contains(lowerTerm)) ||
+                    (c.VehicleReg != null && c.VehicleReg.ToLower().Contains(lowerTerm))
+                );
+            }
+
+            // Order, skip, and take for pagination
+            var skip = (page - 1) * pageSize;
+            var results = await query
+                .OrderByDescending(c => c.Id)  // Or any other ordering
+                .Skip(skip)
+                .Take(pageSize)
+                .Where(x => x.RenewalDate != null)
+                .ToListAsync();
+
+            return results;
+        }
+
+
+        [HttpGet("GetAllContractors")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<Contractor>>> GetContractors()
+        {
+            IQueryable<Contractor> query = _context.Contractors.AsQueryable();
+
+
+            return await query.ToListAsync();
+        }
+
+        [HttpPost("UpdateContractorBpNumber/{id}/{newBpNumber}")]
+        public async Task<IActionResult> UpdateContractorBpNumber(int id, string newBpNumber)
+        {
+            // Find the contractor by ID
+            var contractor = await _context.Contractors.FindAsync(id);
+
+            if (contractor == null)
+            {
+                return NotFound(new { message = "Contractor not found" });
+            }
+
+            // Update BP Number
+            contractor.Bpnumber = newBpNumber;
+
+            // Save changes to database
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "BP Number updated successfully", contractor });
+        }
+
+
 
 
 
