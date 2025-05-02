@@ -59,16 +59,16 @@ namespace WAS_Management.Controllers
             _context.Interactions.Add(interaction);
             await _context.SaveChangesAsync();
 
-            
 
-            if (interaction.PurposeOfInteraction.Contains("Modification Request"))
+
+            if (interaction.PurposeOfInteraction.Contains("Enquiry for Modification"))
             {
                 await SendModificationEmail(interaction, "", "InternalForm");
             }
 
             if (interaction.TypeSel == "Third-Party Contractor" && interaction.PurposeOfInteraction == "Contractor Registration")
             {
-                await SendContractorRegistrationEmail(interaction.EmailAddress);
+                await SendContractorRegistrationEmail(interaction.EmailAddress, interaction.paymentOption);
             }
 
 
@@ -500,7 +500,7 @@ namespace WAS_Management.Controllers
             interaction.Color = formData["Color"];
             interaction.Typeofvehicle = formData["Typeofvehicle"];
             interaction.Paymentoption = formData["paymentOption"].ToString();
-            if(interaction.Paymentoption == "monthly")
+            if (interaction.Paymentoption == "monthly")
             {
                 interaction.RenewalDate = DateTime.Now.AddMonths(1);
             }
@@ -513,8 +513,8 @@ namespace WAS_Management.Controllers
                 interaction.Paymentoption = "yearly";
                 interaction.RenewalDate = DateTime.Now.AddYears(1);
             }
-           
-         
+
+
             interaction.Isactive = false;
 
             await _context.SaveChangesAsync();
@@ -659,7 +659,7 @@ namespace WAS_Management.Controllers
         <div class='content'>
             <p>Dear {contractor.CompanyName},</p>
             <p>Please complete your renewal by clicking the button below:</p>
-            <a class='button' href='{_configuration["AppBaseURL:URL"]}/Interaction/form/ContractorRegistration/{contractor.Id}?type=renewal'>
+            <a style='background-color:#a6272e;color:white;' class='button' href='{_configuration["AppBaseURL:URL"]}/Interaction/form/ContractorRegistration/{contractor.Id}?type=renewal'>
                 Complete Your Renewal
             </a>
             <p>If you have any questions, please contact us at 
@@ -691,7 +691,7 @@ namespace WAS_Management.Controllers
 
         [HttpGet("SendContractorRegistrationEmail/{email}")]
         [AllowAnonymous]
-        public async Task<bool> SendContractorRegistrationEmail(string email)
+        public async Task<bool> SendContractorRegistrationEmail(string email,string paymentoption)
         {
             try
             {
@@ -703,6 +703,8 @@ namespace WAS_Management.Controllers
                 };
 
                 Contractor cr = new Contractor();
+                cr.Paymentoption = paymentoption;
+                cr.Email = email;
                 _context.Contractors.Add(cr);
                 await _context.SaveChangesAsync();
 
@@ -786,7 +788,7 @@ namespace WAS_Management.Controllers
         <div class='content'>
             <p>Dear Sir,</p>
             <p>Please complete your registration by clicking the button below:</p>
-            <a class='button' href='{_configuration["AppBaseURL:URL"]}/Interaction/form/ContractorRegistration/{cr.Id}?type=new'>
+            <a class='button' style='background-color:#a6272e;color:white;' href='{_configuration["AppBaseURL:URL"]}/Interaction/form/ContractorRegistration/{cr.Id}?type=new'>
                 Complete Your Request
             </a>
             <p>If you have any questions, please contact us at 
@@ -794,8 +796,8 @@ namespace WAS_Management.Controllers
             </p>
         </div>
         <div class='footer'>
-            <p>Best regards,</p>
-            <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+            <p style='color:white;'>Best regards,</p>
+            <p style='color:white;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
         </div>
     </div>
 </body>
@@ -824,59 +826,82 @@ namespace WAS_Management.Controllers
         }
 
 
-        [HttpGet("SendServiceRequestEmailAsync/{email}")]
+        [HttpPost("SendServiceRequestEmailAsync/{email}")]
         public async System.Threading.Tasks.Task SendServiceRequestEmailAsync(
-    string customername,
-    string subject,
-    string issue)
+    [FromForm] string email,
+    [FromForm] string customername,
+    [FromForm] string subject,
+    [FromForm] string issue,
+    [FromForm] IFormFile attachmentFile)
         {
-            var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+            try
             {
-                Port = int.Parse(_configuration["Mail:Port"]),
-                Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
-                EnableSsl = true,
-            };
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    EnableSsl = true,
+                };
 
-            string emailBody = $@"
-    <html>
-    <head>
-        <style>
-            body {{ font-family: Arial, sans-serif; background-color: #ffffff; color: #000000; margin: 0; padding: 20px; }}
-            .container {{ max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #000000; }}
-            .header {{ text-align: center; padding-bottom: 10px; border-bottom: 1px solid #000000; }}
-            .header img {{ max-width: 180px; }}
-            .content {{ padding: 20px; font-size: 16px; color: #000000; line-height: 1.5; }}
-            .footer {{ text-align: center; padding: 10px; font-size: 14px; color: #000000; border-top: 1px solid #000000; margin-top: 20px; }}
-            a {{ color: #000000; text-decoration: none; font-weight: bold; }}
-        </style>
-    </head>
-    <body>
-        <div class='container'>
-            <div class='header'>
-                <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
-            </div>
-            <div class='content'>
-                <p>Issue Reported By {customername},</p>
-                <p>{issue}</p>
-               
-            </div>
-         
+                string emailBody = $@"
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; background-color: #ffffff; color: #000000; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #000000; }}
+        .header {{ text-align: center; padding-bottom: 10px; border-bottom: 1px solid #000000; }}
+        .header img {{ max-width: 180px; }}
+        .content {{ padding: 20px; font-size: 16px; color: #000000; line-height: 1.5; }}
+        .footer {{ text-align: center; padding: 10px; font-size: 14px; color: #000000; border-top: 1px solid #000000; margin-top: 20px; }}
+        a {{ color: #000000; text-decoration: none; font-weight: bold; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Logo'>
         </div>
-    </body>
-    </html>";
+        <div class='content'>
+            <p>Issue Reported By {customername},</p>
+            <p>{issue}</p>
+        </div>
+    </div>
+</body>
+</html>";
 
-            var mailMessage = new MailMessage
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = subject,
+                    Body = emailBody,
+                    IsBodyHtml = true,
+                };
+
+                mailMessage.To.Add("muhammadhassannaeem@gmail.com");
+                mailMessage.To.Add("connect@flowpilot.ae");
+
+                if (attachmentFile != null && attachmentFile.Length > 0)
+                {
+                    var memoryStream = new MemoryStream();
+                    await attachmentFile.CopyToAsync(memoryStream);
+                    memoryStream.Position = 0;
+
+                    var fileName = string.IsNullOrWhiteSpace(attachmentFile.FileName) ? "attachment" : attachmentFile.FileName;
+                    var contentType = string.IsNullOrWhiteSpace(attachmentFile.ContentType) ? "application/octet-stream" : attachmentFile.ContentType;
+
+                    var attachment = new Attachment(memoryStream, fileName, contentType);
+                    mailMessage.Attachments.Add(attachment);
+                }
+
+
+
+                await smtpClient.SendMailAsync(mailMessage);
+            }
+            catch (Exception ex)
             {
-                From = new MailAddress(_configuration["Mail:From"]),
-                Subject = subject,
-                Body = emailBody,
-                IsBodyHtml = true,
-            };
-
-            mailMessage.To.Add("muhammadhassannaeem@gmail.com");
-            mailMessage.To.Add("connect@flowpilot.ae");
-
-            await smtpClient.SendMailAsync(mailMessage);
+                Console.WriteLine($"Email Error: {ex.Message}");
+                throw; // Optionally rethrow or handle gracefully
+            }
         }
 
 
@@ -1030,13 +1055,13 @@ namespace WAS_Management.Controllers
                     <p>Dear Valued Customer,</p>
                     <p>You are receiving this notification based on your recent interaction with Al Hamra Real Estate Development.</p>
                     <p>To complete your request for modification and accept the terms and conditions, please click the button below:</p>
-                    <a class='button' style='color:white' href='{_configuration["AppBaseURL:URL"]}/Interaction/form/ExternalSubmissionForm/{interaction.Id}'>Complete Your Request</a>
+                    <a style='background-color:#a6272e;color:white;' class='button'  href='{_configuration["AppBaseURL:URL"]}/Interaction/form/ExternalSubmissionForm/{interaction.Id}'>Complete Your Request</a>
                     <p>If you have any questions or need further assistance, please feel free to contact us at 
-                    <a style='color:black' href='mailto:propertymanagement@alhamra.ae'>propertymanagement@alhamra.ae</a>.</p>
+                    <a   href='mailto:propertymanagement@alhamra.ae'>propertymanagement@alhamra.ae</a>.</p>
                 </div>
                 <div class='footer'>
-                    <p>Best regards,</p>
-                    <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+                    <p style='color:#a6272e;'>Best regards,</p>
+                    <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
                 </div>
             </div>
         </body>

@@ -33,7 +33,7 @@ namespace WAS_Management.Controllers
             try
             {
                 // Fetch user by username
-                var user = await _context.Users.FirstOrDefaultAsync(x => x.Username == username);
+                var user = await _context.Users.FirstOrDefaultAsync(x => x.Email == username);
 
                 // If user is not found
                 if (user == null)

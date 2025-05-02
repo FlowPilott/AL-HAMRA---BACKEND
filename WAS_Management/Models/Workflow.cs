@@ -42,4 +42,6 @@ public partial class Workflow
     public string? InteractionId { get; set; }
 
     public string? Identifier { get; set; }
+
+    public string? Worktype { get; set; }
 }

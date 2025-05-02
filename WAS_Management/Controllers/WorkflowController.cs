@@ -66,11 +66,29 @@ namespace WAS_Management.Controllers
         }
 
 
+
+        private string GenerateNmeFormattedId(int id, string template)
+        {
+            if (template == "Modification Request")
+            {
+                return GenerateFormattedId(id);
+            }
+            else if (template == "CONTRACTOR REGISTRATION")
+            {
+                return GenerateCCFormattedId(id);
+            }
+            else if (template == "Resale NOC")
+            {
+                return GenerateRNFormattedId(id);
+            }
+            return "";
+        }
+
         [HttpGet("GenerateFormattedId/{id}")]
         [AllowAnonymous]
         private string GenerateFormattedId(int id)
         {
-            string prefix = "PMCR";
+            string prefix = "PMMR";
             return $"{prefix}{id:D5}";
         }
 
@@ -78,7 +96,7 @@ namespace WAS_Management.Controllers
         [AllowAnonymous]
         private string GenerateCCFormattedId(int id)
         {
-            string prefix = "PCR";
+            string prefix = "PMCR";
             return $"{prefix}{id:D5}";
         }
 
@@ -86,7 +104,7 @@ namespace WAS_Management.Controllers
         [AllowAnonymous]
         private string GenerateRNFormattedId(int id)
         {
-            string prefix = "PRN";
+            string prefix = "PMRN";
             return $"{prefix}{id:D5}";
         }
 
@@ -101,8 +119,8 @@ namespace WAS_Management.Controllers
             try
             {
 
-                var userid1 = await _context.Users.Where(x => x.Email == "bejoy.george@email.com").Select(x => x.Id).FirstOrDefaultAsync();
-                var userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                var userid1 = await _context.Users.Where(x => x.Username == "Bejoy").Select(x => x.Id).FirstOrDefaultAsync();
+                var userid2 = await _context.Users.Where(x => x.Username == "Jinu").Select(x => x.Id).FirstOrDefaultAsync();
                 workflow.InitiatorId = initiator_id;
                 var workflowtypeid = await _context.WorkflowTypes.Where(x => x.Name == "INTERACTION RECORDING FORM").Select(x => x.Id).FirstOrDefaultAsync();
                 workflow.WorkflowTypeId = workflowtypeid;
@@ -134,7 +152,7 @@ namespace WAS_Management.Controllers
                 step2.StepName = "Review Scope";
                 step2.StepDescription = "Review Scope";
                 step2.Type = "All";
-                userid1 = await _context.Users.Where(x => x.Email == "abubaker.yafai@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                userid1 = await _context.Users.Where(x => x.Username == "Abubaker").Select(x => x.Id).FirstOrDefaultAsync();
                 //userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
                 var data2 = new[]
 {
@@ -154,7 +172,7 @@ namespace WAS_Management.Controllers
                 step3.StepName = "Review Scope2";
                 step3.StepDescription = "Review Scope2";
                 step3.Type = "All";
-                userid1 = await _context.Users.Where(x => x.Email == "suhail.abdullah@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                userid1 = await _context.Users.Where(x => x.Username == "Suhail").Select(x => x.Id).FirstOrDefaultAsync();
                 // var userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
                 var data3 = new[]
 {
@@ -173,7 +191,7 @@ namespace WAS_Management.Controllers
                 step4.StepName = "Review Scope and Fees Calculation";
                 step4.StepDescription = "Review Scope and Fees Calculation";
                 step4.Type = "All";
-                userid1 = await _context.Users.Where(x => x.Email == "dilin.varkey@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                userid1 = await _context.Users.Where(x => x.Username == "Dilin").Select(x => x.Id).FirstOrDefaultAsync();
                 // var userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
                 var data4 = new[]
 {
@@ -192,7 +210,7 @@ namespace WAS_Management.Controllers
                 step5.StepName = "Upload the Invoice";
                 step5.StepDescription = "Upload the Invoice";
                 step5.Type = "All";
-                userid1 = await _context.Users.Where(x => x.Email == "cashir.varkey@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                userid1 = await _context.Users.Where(x => x.Username == "Cashier").Select(x => x.Id).FirstOrDefaultAsync();
                 // var userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
                 var data5 = new[]
 {
@@ -211,8 +229,8 @@ namespace WAS_Management.Controllers
                 step6.StepName = "Confirm Payment Received";
                 step6.StepDescription = "Confirm Payment Received";
                 step6.Type = "Any";
-                userid1 = await _context.Users.Where(x => x.Email == "bejoy.george@email.com").Select(x => x.Id).FirstOrDefaultAsync();
-                userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                userid1 = await _context.Users.Where(x => x.Username == "Bejoy").Select(x => x.Id).FirstOrDefaultAsync();
+                userid2 = await _context.Users.Where(x => x.Username == "Jinu").Select(x => x.Id).FirstOrDefaultAsync();
                 var data6 = new[]
 {
     new { Id = userid1.ToString(), Status = "Not Approved", Rights = "Edit" },
@@ -258,8 +276,8 @@ namespace WAS_Management.Controllers
             try
             {
 
-                var userid1 = await _context.Users.Where(x => x.Email == "bejoy.george@email.com").Select(x => x.Id).FirstOrDefaultAsync();
-                var userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                var userid1 = await _context.Users.Where(x => x.Username == "Bejoy").Select(x => x.Id).FirstOrDefaultAsync();
+                var userid2 = await _context.Users.Where(x => x.Username == "Jinu").Select(x => x.Id).FirstOrDefaultAsync();
                 workflow.InitiatorId = initiator_id;
                 var workflowtypeid = await _context.WorkflowTypes.Where(x => x.Name == type).Select(x => x.Id).FirstOrDefaultAsync();
                 workflow.WorkflowTypeId = workflowtypeid;
@@ -291,8 +309,8 @@ namespace WAS_Management.Controllers
                 step2.StepName = "APPROVE";
                 step2.StepDescription = "APPROVE";
                 step2.Type = "All";
-                userid1 = await _context.Users.Where(x => x.Email == "abubaker.yafai@email.com").Select(x => x.Id).FirstOrDefaultAsync();
-                userid2 = await _context.Users.Where(x => x.Email == "suhail.abdullah@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                userid1 = await _context.Users.Where(x => x.Username == "Abubaker").Select(x => x.Id).FirstOrDefaultAsync();
+                userid2 = await _context.Users.Where(x => x.Username == "Suhail").Select(x => x.Id).FirstOrDefaultAsync();
                 var data2 = new[]
 {
     new { Id = userid1.ToString(), Status = "Not Approved", Rights = "Edit" },
@@ -312,7 +330,7 @@ namespace WAS_Management.Controllers
                 step3.StepName = "UPLOAD INVOICE";
                 step3.StepDescription = "UPLOAD INVOICE";
                 step3.Type = "All";
-                userid1 = await _context.Users.Where(x => x.Email == "cashir.varkey@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                userid1 = await _context.Users.Where(x => x.Username == "Cashier").Select(x => x.Id).FirstOrDefaultAsync();
                 // var userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
                 var data3 = new[]
 {
@@ -331,8 +349,8 @@ namespace WAS_Management.Controllers
                 step4.StepName = "FILE CLOSURE";
                 step4.StepDescription = "FILE CLOSURE";
                 step4.Type = "Any";
-                userid1 = await _context.Users.Where(x => x.Email == "bejoy.george@email.com").Select(x => x.Id).FirstOrDefaultAsync();
-                userid2 = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                userid1 = await _context.Users.Where(x => x.Username == "Bejoy").Select(x => x.Id).FirstOrDefaultAsync();
+                userid2 = await _context.Users.Where(x => x.Username == "Jinu").Select(x => x.Id).FirstOrDefaultAsync();
                 var data4 = new[]
 {
     new { Id = userid1.ToString(), Status = "Not Approved", Rights = "Edit" },
@@ -384,8 +402,8 @@ namespace WAS_Management.Controllers
             try
             {
 
-                var userid1_one = await _context.Users.Where(x => x.Email == "bejoy.george@email.com").Select(x => x.Id).FirstOrDefaultAsync();
-                var userid2_one = await _context.Users.Where(x => x.Email == "jinu.joy@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                var userid1_one = await _context.Users.Where(x => x.Username == "Bejoy").Select(x => x.Id).FirstOrDefaultAsync();
+                var userid2_one = await _context.Users.Where(x => x.Username == "Jinu").Select(x => x.Id).FirstOrDefaultAsync();
                 workflow.InitiatorId = initiator_id;
                 var workflowtypeid = await _context.WorkflowTypes.Where(x => x.Name == "Resale NOC").Select(x => x.Id).FirstOrDefaultAsync();
                 workflow.WorkflowTypeId = workflowtypeid;
@@ -417,8 +435,8 @@ namespace WAS_Management.Controllers
                 step2.StepName = "APPROVE";
                 step2.StepDescription = "APPROVE";
                 step2.Type = "Any";
-                var userid1 = await _context.Users.Where(x => x.Email == "abubaker.yafai@email.com").Select(x => x.Id).FirstOrDefaultAsync();
-                var userid2 = await _context.Users.Where(x => x.Email == "suhail.abdullah@email.com").Select(x => x.Id).FirstOrDefaultAsync();
+                var userid1 = await _context.Users.Where(x => x.Username == "Abubaker").Select(x => x.Id).FirstOrDefaultAsync();
+                var userid2 = await _context.Users.Where(x => x.Username == "Suhail").Select(x => x.Id).FirstOrDefaultAsync();
                 var data2 = new[]
 {
     new { Id = userid1.ToString(), Status = "Not Approved", Rights = "Edit" },
@@ -699,8 +717,10 @@ namespace WAS_Management.Controllers
                 string GetStringValue(string key) => formData.ContainsKey(key) ? formData[key].ToString() : null;
                 int? GetNullableIntValue(string key) => int.TryParse(GetStringValue(key), out int value) ? value : null;
 
+
                 int? approverid = GetNullableIntValue("ApproverId");
                 int? tskid = GetNullableIntValue("TaskId");
+                string? typeofWork = GetStringValue("typeofWork");
                 var approvalstatus = formData.ContainsKey("approvalStatus") ? formData["approvalStatus"].ToString() : null;
                 stepAction.approvalstatus = approvalstatus;
 
@@ -824,6 +844,9 @@ namespace WAS_Management.Controllers
                         }
                     }
 
+
+
+
                     var task = await _context.UserTasks.Where(x => x.Id == tskid).FirstOrDefaultAsync();
 
                     task.Status = "Approved";
@@ -872,6 +895,10 @@ namespace WAS_Management.Controllers
 
                     // Save changes
                     await _context.SaveChangesAsync();
+
+
+
+
 
 
 
@@ -956,17 +983,42 @@ namespace WAS_Management.Controllers
                     var workflowstep = await _context.WorkflowSteps.FindAsync(WorkflowStepId);
                     if (workflowstep != null)
                     {
+                        var existingList = string.IsNullOrWhiteSpace(workflowstep.Actiondetails)
+     ? new List<WorkflowStepActionDetails>()
+     : JsonSerializer.Deserialize<List<WorkflowStepActionDetails>>(workflowstep.Actiondetails);
+
+                        //var entry = existingList.FirstOrDefault(x => x.PerformedBy == stepAction.PerformedBy);
+
+                        if (existingList == null)
+                        {
+                            existingList = new List<WorkflowStepActionDetails>();
+                        }
+
+
+                        WorkflowStepActionDetails entry = new WorkflowStepActionDetails
+                        {
+                            PerformedBy = stepAction.PerformedBy ?? 0,
+                            ReceivedOn = DateTime.Now,
+                            DueOn = DateTime.Now.AddDays(3),
+                            Rights = "Edit",
+                            StepAction = stepAction,
+                            ExecutedOn = DateTime.Now,
+                            Status = stepAction.approvalstatus == "reject" ? "Rejected" : "Approved",
+                            Files = pathData
+                        };
+                        existingList.Add(entry);
 
                         // Create a combined JSON object with stepAction and pathData
-                        var combinedData = new
-                        {
-                            StepAction = stepAction,
-                            Files = pathData, // Embed pathData (list of files)
+                        //var combinedData = new
+                        //{
+                        //    StepAction = stepAction,
+                        //    Files = pathData, // Embed pathData (list of files)
+                        //};
 
-                        };
+
 
                         // Serialize the combined object to JSON
-                        string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
+                        string jsonString = JsonSerializer.Serialize(existingList, new JsonSerializerOptions { WriteIndented = true });
                         if (stepAction.ActionType == "Submit")
                         {
                             workflowstep.Actiondetails = jsonString;
@@ -1023,6 +1075,7 @@ namespace WAS_Management.Controllers
                         }
                         else
                         {
+
                             workflowstep.Actiondetails = jsonString;
                         }
                         workflowstep.ExecutedOn = DateTime.Now;
@@ -1032,12 +1085,12 @@ namespace WAS_Management.Controllers
                         var workflow = _context.Workflows.FirstOrDefault(w => w.Id == workflowstep.WorkflowId);
 
 
-                        if (workflowstep.Status == "Approved")
-                        {
-                            var tasklst = await _context.UserTasks.Where(x => x.Id == tskid).FirstOrDefaultAsync();
-                            tasklst.Status = "Approved";
-                            await _context.SaveChangesAsync();
-                        }
+                        //if (workflowstep.Status == "Approved")
+                        //{
+                        //    var tasklst = await _context.UserTasks.Where(x => x.Id == tskid).FirstOrDefaultAsync();
+                        //    tasklst.Status = "Approved";
+                        //    await _context.SaveChangesAsync();
+                        //}
 
                         #region Modifiction Request
                         if (workflowstep.Status == "Approved" && stepAction.ActionType == "Submit" && workflow.Subject == "Interaction Recording Form")
@@ -1051,12 +1104,13 @@ namespace WAS_Management.Controllers
                             else if (workflowstep.StepName == "Upload the Invoice") nextstepname = "Confirm Payment Received";
 
                             if (workflowstep.StepName == "Review Scope and Site Requirements" && (stepAction.Category == "Minor Work"
-                                && stepAction.SubCat == "Without Charges") || (stepAction.Category == "Major Work"))
+                                && stepAction.SubCat == "Without Charges"))
                             {
                                 //  workflows.Status = "Approved";
                                 //workflowstep.Status = "In Progress";
 
                                 workflows.Status = "Approved";
+                                workflows.Worktype = typeofWork;
                                 workflows.ApprovalStartDate = stepAction.ApprovalStartDate;
                                 workflows.ApprovalEndDate = stepAction.ApprovalEndDate;
                                 await _context.SaveChangesAsync();
@@ -1122,9 +1176,9 @@ namespace WAS_Management.Controllers
 
 
 
-                                await SaveWorkPermitAsPdfAsync(WorkflowStepId, emailDetails, "Bejoy", stepAction.Comments);
+                                var workpermitpath = await SaveWorkPermitAsPdfAsync(WorkflowStepId, emailDetails, "Bejoy", stepAction.Comments, typeofWork);
 
-                                //await SendPaymentConfirmationEmail(emailDetails.EmailAddress, stepAction.Comments, workpermitpath);
+                                await SendPaymentConfirmationEmail(emailDetails.EmailAddress, stepAction.Comments, workpermitpath);
 
 
                                 //await SendModificationEmail2("");
@@ -1170,6 +1224,7 @@ namespace WAS_Management.Controllers
                             {
                                 workflows.ApprovalStartDate = stepAction.ApprovalStartDate;
                                 workflows.ApprovalEndDate = stepAction.ApprovalEndDate;
+                                workflows.Worktype = typeofWork;
                                 await _context.SaveChangesAsync();
 
                             }
@@ -1287,7 +1342,7 @@ namespace WAS_Management.Controllers
 
 
 
-                                var workpermitpath = await SaveWorkPermitAsPdfAsync(WorkflowStepId, emailDetails, "Bejoy", stepAction.Comments);
+                                var workpermitpath = await SaveWorkPermitAsPdfAsync(WorkflowStepId, emailDetails, "Bejoy", stepAction.Comments, workflow.Worktype);
 
                                 await SendPaymentConfirmationEmail(emailDetails.EmailAddress, stepAction.Comments, workpermitpath);
                             }
@@ -1510,31 +1565,62 @@ namespace WAS_Management.Controllers
                                    .FirstOrDefault();
 
                                     var currentstep = await _context.Users.Where(x => x.Id == approverid).FirstOrDefaultAsync();
-                                    approveresalenoc(resalenoc.Email, "Sales Team", resalenoc.Unitno, stepAction.Checkboxes, files, currentstep.Username);
+                                    var user = await _context.Users.Where(x => x.Username == resalenoc.Intiatorname).FirstOrDefaultAsync();
+
+                                    approveresalenoc(user.Email, "Sales Team", resalenoc.Unitno, stepAction.Checkboxes, files, currentstep.Username);
                                 }
 
                             }
                             else
                             {
                                 int resalenocid = Convert.ToInt32(workflow.InteractionId);
-                                // Step 3: Get the email address from interaction with ID = 42
-                                var resalenoc = _context.Resalenocs
-                               .Where(i => i.Id == resalenocid)
-                               .FirstOrDefault();
 
-                                var currentstep = await _context.Users.Where(x => x.Id == approverid).FirstOrDefaultAsync();
-                                rejectresalenoc(resalenoc.Email, "Sales Team", resalenoc.Unitno, stepAction.Checkboxes, files, currentstep.Username);
-
-                                var tasklst = await _context.UserTasks.Where(x => x.WorkflowId == workflows.Id).ToListAsync();
-                                foreach (var task in tasklst)
+                                // Step 1: Retrieve Resale NOC by ID
+                                var resalenoc = await _context.Resalenocs.FirstOrDefaultAsync(i => i.Id == resalenocid);
+                                if (resalenoc == null)
                                 {
-                                    task.Status = "Rejected";
-                                    await _context.SaveChangesAsync();
+                                    throw new Exception($"Resalenoc with ID {resalenocid} not found.");
                                 }
 
+                                // Step 2: Get current approver and initiator users
+                                var currentStepUser = await _context.Users.FirstOrDefaultAsync(x => x.Id == approverid);
+                                if (currentStepUser == null)
+                                {
+                                    throw new Exception($"Approver with ID {approverid} not found.");
+                                }
 
+                                if (string.IsNullOrEmpty(resalenoc.Intiatorname))
+                                {
+                                    throw new Exception("Resalenoc.Intiatorname is null or empty.");
+                                }
+
+                                var initiatorUser = await _context.Users.FirstOrDefaultAsync(x => x.Username == resalenoc.Intiatorname);
+                                if (initiatorUser == null)
+                                {
+                                    throw new Exception($"Initiator user with username '{resalenoc.Intiatorname}' not found.");
+                                }
+
+                                // Step 3: Send rejection email
+                                rejectresalenoc(
+                                    initiatorUser.Email,
+                                    "Sales Team",
+                                    resalenoc.Unitno,
+                                    stepAction.Checkboxes,
+                                    files,
+                                    currentStepUser.Username
+                                );
+
+                                // Step 4: Reject all tasks
+                                var taskList = await _context.UserTasks.Where(x => x.WorkflowId == workflows.Id).ToListAsync();
+                                foreach (var task in taskList)
+                                {
+                                    task.Status = "Rejected";
+                                }
+
+                                // Step 5: Reject workflow and save
                                 workflows.Status = "Rejected";
                                 await _context.SaveChangesAsync();
+
                             }
 
                         }
@@ -1544,7 +1630,7 @@ namespace WAS_Management.Controllers
 
                         if (workflowstep.Type == "Any")
                         {
-                            var tasklst = await _context.UserTasks.Where(x => x.WorkflowId == workflow.Id).ToListAsync();
+                            var tasklst = await _context.UserTasks.Where(x => x.StepId == workflowstep.Id).ToListAsync();
                             foreach (var item in tasklst)
                             {
                                 item.Status = "Approved";
@@ -1552,6 +1638,38 @@ namespace WAS_Management.Controllers
                             }
 
 
+                        }
+
+                        if (workflowstep.Type == "All")
+                        {
+                            var tasklst = await _context.UserTasks.Where(x => x.StepId == workflowstep.Id).ToListAsync();
+                            if (tasklst.Count() == 1)
+                            {
+                                foreach (var item in tasklst)
+                                {
+                                    item.Status = "Approved";
+                                    await _context.SaveChangesAsync();
+                                }
+                            }
+                            else
+                            {
+                                var tsklst = await _context.UserTasks.Where(x => x.Id == tskid).FirstOrDefaultAsync();
+                                tsklst.Status = "Approved";
+                                await _context.SaveChangesAsync();
+
+                            }
+
+
+                        }
+
+                        if (approvalstatus == "reject")
+                        {
+                            var tasklst = await _context.UserTasks.Where(x => x.StepId == workflowstep.Id).ToListAsync();
+                            foreach (var item in tasklst)
+                            {
+                                item.Status = "Rejected";
+                                await _context.SaveChangesAsync();
+                            }
                         }
 
 
@@ -1843,7 +1961,7 @@ namespace WAS_Management.Controllers
 
         [HttpPost("SaveWorkPermitAsPdfAsync")]
         [AllowAnonymous]
-        public async Task<string> SaveWorkPermitAsPdfAsync(int workflowStepId, Interaction intobj, string approvalby, string comments)
+        public async Task<string> SaveWorkPermitAsPdfAsync(int workflowStepId, Interaction intobj, string approvalby, string comments, string typeofwork)
         {
             // Retrieve the uploads directory from configuration
             var uploadsDirectory = _configuration.GetValue<string>("upload:path");
@@ -1890,9 +2008,9 @@ namespace WAS_Management.Controllers
                 .Replace("CONTRACTORNAME", intobj.ContractorCompName)
                 .Replace("TRADELICENCE", intobj.TradeLicenceNo)
                 .Replace("CONTRACTORID", contid)
-                .Replace("WORKDESCRIPTION", "")
+                .Replace("WORKDESCRIPTION", intobj.InternalWork)
                 .Replace("VILLA#", intobj.UnitNumber)
-                .Replace("TYPEOFWORK", "")
+                .Replace("TYPEOFWORK", typeofwork)
                 .Replace("APPROVALBY", approvalby)
                 .Replace("AREAOFWORK", intobj.InternalWork)
                 .Replace("SPECIALCOMMENTS", comments);
@@ -2231,7 +2349,7 @@ namespace WAS_Management.Controllers
                     Status = item.Status,
                     AssignedTo = item.AssignedTo,
                     Isviewed = item.IsViewed,
-                    Unique_Id = item.InteractionId != null ? GenerateFormattedId(Convert.ToInt32(item.InteractionId)) : ""
+                    Unique_Id = item.InteractionId != null ? GenerateNmeFormattedId(Convert.ToInt32(item.InteractionId), item.Template) : ""
                 }).OrderByDescending(x => x.Id).ToList();
 
                 return tasksList;
@@ -2394,7 +2512,7 @@ namespace WAS_Management.Controllers
                 else if (wf.Subject == "CONTRACTOR REGISTRATION")
                 {
                     var tasklst = await _context.Contractors.Where(x => x.Id == interactionid).ToListAsync();
-
+                    WorkFlowVMobj.Details = wf.Details;
                     WorkFlowVMobj.InterationData = tasklst;
                 }
                 else if (wf.Subject == "Resale NOC")
@@ -2838,7 +2956,7 @@ namespace WAS_Management.Controllers
                 };
 
                 // Email Subject
-                string emailSubject = "NOC Inspection Rejection Notice";
+                string emailSubject = "NOC Inspection Approval";
 
                 // Convert nonComplianceIssues list to bullet points
                 string nonComplianceIssuesHtml = "<ul>" + string.Join("", nonComplianceIssues.Select(issue => $"<li>{issue}</li>")) + "</ul>";
@@ -3256,9 +3374,9 @@ namespace WAS_Management.Controllers
 </head>
 <body>
     <div class='container'>
-        <div class='header'>
-            <h2>Your Request {requestno} Has Been Processed</h2>
-        </div>
+         <div class='header'>
+                <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
+            </div>
         <div class='content'>
             <p>Dear {customerName},</p>
             <p>We are pleased to inform you that your request no: <strong>{requestno}</strong> has been successfully processed.</p>
@@ -3331,9 +3449,9 @@ namespace WAS_Management.Controllers
 </head>
 <body>
     <div class='container'>
-        <div class='header'>
-            <h2>Payment Confirmation reference no {workflowId}</h2>
-        </div>
+         <div class='header'>
+                    <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
+                </div>
         <div class='content'>
             <p>Dear {customerName},</p>
             <p>We are pleased to confirm that we have received your payment with respect to reference no <strong>{workflowId}</strong>. Kindly find enclosed payment receipt and below payment details for your reference:</p>

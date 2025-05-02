@@ -45,6 +45,8 @@ namespace WAS_Management.ViewModels
         public string? Department { get; set; }
         public string? Identifier { get; set; }
 
+        public string? typeofWork { get; set; }
+
         public IEnumerable<WorkFlowStepVM> workFlowStepVMs { get; set; }
         public IEnumerable<WorkflowDocument> Documents { get; set; }
 

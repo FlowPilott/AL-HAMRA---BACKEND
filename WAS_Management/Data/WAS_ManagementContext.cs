@@ -503,6 +503,9 @@ public partial class WAS_ManagementContext : DbContext
                 .HasMaxLength(255)
                 .HasColumnName("vendor_name");
             entity.Property(e => e.WorkflowTypeId).HasColumnName("workflow_type_id");
+            entity.Property(e => e.Worktype)
+                .HasMaxLength(255)
+                .HasColumnName("worktype");
         });
 
         modelBuilder.Entity<WorkflowDocument>(entity =>

@@ -17,6 +17,36 @@ public partial class StepAction
 
     [NotMapped]
     public string? approvalstatus { get; set; }  // Not stored in DB
+
+    [NotMapped]
+    public DateTime? ReceivedOn { get; set; }
+
+    [NotMapped]
+    public DateTime? DueOn { get; set; }
+
+    [NotMapped]
+    public DateTime? ExecutedOn { get; set; }
+}
+
+public partial class Interaction
+{
+    [NotMapped]
+    public string paymentOption { get; set; }
+
+}
+
+public class WorkflowStepActionDetails
+{
+    public int PerformedBy { get; set; }  // Helps identify the user
+    public StepAction StepAction { get; set; }
+    public string Status { get; set; }
+    public string Rights { get; set; }
+    public DateTime? ReceivedOn { get; set; }
+    public DateTime? DueOn { get; set; }
+    public DateTime? ExecutedOn { get; set; }
+
+  
+    public List<dynamic> Files { get; set; } = new();
 }
 #nullable disable
 
