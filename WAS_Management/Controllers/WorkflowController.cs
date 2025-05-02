@@ -1724,7 +1724,7 @@ namespace WAS_Management.Controllers
 
 
         [HttpPost("CreateWorkFlowStepActionRFI")]
-        public async Task<bool> CreateWorkFlowStepActionRFI(int WorkflowStepId, StepAction stepAction)
+        public async Task<bool> CreateWorkFlowStepActionRFI(int WorkflowStepId, StepAction stepAction, [FromForm] IFormCollection formData)
         {
             stepAction.StepId = WorkflowStepId;
             stepAction.PerformedOn = DateTime.Now;
@@ -1791,6 +1791,62 @@ namespace WAS_Management.Controllers
                 workflowstep.AssignedTo = jsonString;
                 workflowstep.Details = jsonString2;
 
+                var pathData = new List<dynamic>();
+
+                var files = formData.Files;
+                if (files != null && files.Count > 0)
+                {
+                    foreach (var file in files)
+                    {
+                        if (file.Length > 0)
+                        {
+                            // 2. Get the upload path from appsettings.json
+                            var uploadPath = _configuration.GetValue<string>("upload:path");
+
+
+                            // 3. Combine with the current directory to get the full path
+                            var fullPath = Path.Combine(Directory.GetCurrentDirectory(), uploadPath);
+
+
+                            // 4. Ensure the directory exists
+                            if (!Directory.Exists(fullPath))
+                            {
+                                Directory.CreateDirectory(fullPath);
+                            }
+
+                            // 5. Generate a unique file name to avoid overwriting
+                            var fileName = Path.GetRandomFileName() + Path.GetExtension(file.FileName);
+                            var filePath = Path.Combine(fullPath, fileName);
+
+                            // 6. Save the file to the specified path
+                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            {
+                                await file.CopyToAsync(stream);
+                            }
+
+                            // Use the original file name
+                            var originalFileName = Path.GetFileName(file.FileName);
+
+
+                            WorkflowDocument workflowDocument = new WorkflowDocument();
+                            workflowDocument.StepId = stepAction.Id;
+                            workflowDocument.WorkflowId = WorkflowStepId;
+                            workflowDocument.DocumentPath = filePath;
+                            workflowDocument.DocumentName = originalFileName;
+                            workflowDocument.UploadedOn = DateTime.Now;
+                            await _context.AddAsync(workflowDocument);
+                            await _context.SaveChangesAsync();
+                            pathData.Add(new
+                            {
+                                Name = originalFileName,
+                                Path = filePath,
+                                Id = workflowDocument.Id
+                            });
+                        }
+                    }
+                }
+
+
                 await _context.SaveChangesAsync();
 
 
@@ -1809,7 +1865,8 @@ namespace WAS_Management.Controllers
                     RequestedBy = stepAction.PerformedBy.ToString(),
                     PerformedOn = DateTime.Now,
                     IterationType = "RFI",
-                    TaskId = taskId  // Add TaskId here
+                    TaskId = taskId,  // Add TaskId here
+                    Files = pathData
                 });
 
                 // Serialize the updated data again
@@ -1830,7 +1887,7 @@ namespace WAS_Management.Controllers
 
 
         [HttpPost("CreateWorkFlowStepActionReassign")]
-        public async Task<bool> CreateWorkFlowStepActionReassign(int WorkflowStepId, StepAction stepAction)
+        public async Task<bool> CreateWorkFlowStepActionReassign(int WorkflowStepId, StepAction stepAction, [FromForm] IFormCollection formData)
         {
             stepAction.StepId = WorkflowStepId;
             stepAction.PerformedOn = DateTime.Now;
@@ -1858,6 +1915,61 @@ namespace WAS_Management.Controllers
                 // Serialize the combined object to JSON
                 // string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
                 var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(workflowstep.AssignedTo);
+
+                var pathData = new List<dynamic>();
+
+                var files = formData.Files;
+                if (files != null && files.Count > 0)
+                {
+                    foreach (var file in files)
+                    {
+                        if (file.Length > 0)
+                        {
+                            // 2. Get the upload path from appsettings.json
+                            var uploadPath = _configuration.GetValue<string>("upload:path");
+
+
+                            // 3. Combine with the current directory to get the full path
+                            var fullPath = Path.Combine(Directory.GetCurrentDirectory(), uploadPath);
+
+
+                            // 4. Ensure the directory exists
+                            if (!Directory.Exists(fullPath))
+                            {
+                                Directory.CreateDirectory(fullPath);
+                            }
+
+                            // 5. Generate a unique file name to avoid overwriting
+                            var fileName = Path.GetRandomFileName() + Path.GetExtension(file.FileName);
+                            var filePath = Path.Combine(fullPath, fileName);
+
+                            // 6. Save the file to the specified path
+                            using (var stream = new FileStream(filePath, FileMode.Create))
+                            {
+                                await file.CopyToAsync(stream);
+                            }
+
+                            // Use the original file name
+                            var originalFileName = Path.GetFileName(file.FileName);
+
+
+                            WorkflowDocument workflowDocument = new WorkflowDocument();
+                            workflowDocument.StepId = stepAction.Id;
+                            workflowDocument.WorkflowId = WorkflowStepId;
+                            workflowDocument.DocumentPath = filePath;
+                            workflowDocument.DocumentName = originalFileName;
+                            workflowDocument.UploadedOn = DateTime.Now;
+                            await _context.AddAsync(workflowDocument);
+                            await _context.SaveChangesAsync();
+                            pathData.Add(new
+                            {
+                                Name = originalFileName,
+                                Path = filePath,
+                                Id = workflowDocument.Id
+                            });
+                        }
+                    }
+                }
                 List<dynamic>? deserializedData2 = new List<dynamic>();
                 if (workflowstep.Details != null)
                     deserializedData2 = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.Details);
@@ -1870,6 +1982,11 @@ namespace WAS_Management.Controllers
                         item["TaskId"] = taskId;
 
                     }
+                }
+                foreach (var item in deserializedData2)
+                {
+                      item["Files"] = pathData;
+
                 }
 
                 // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
@@ -1896,6 +2013,7 @@ namespace WAS_Management.Controllers
                 // Serialize the updated data again
                 jsonString2 = JsonSerializer.Serialize(deserializedData2, new JsonSerializerOptions { WriteIndented = true });
                 workflowstep.Details = jsonString2;
+
 
                 // Save the updated workflow step
                 await _context.SaveChangesAsync();

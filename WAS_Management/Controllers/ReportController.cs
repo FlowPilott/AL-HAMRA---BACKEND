@@ -68,5 +68,64 @@ namespace WAS_Management.Controllers
 
             return Ok(results);
         }
+        [HttpGet("resalenocs")]
+        public async Task<ActionResult<IEnumerable<Resalenoc>>> GetResaleNOCs(
+    string? mastercomm = null,
+    string? projectname = null,
+    string? subprojectname = null,
+    string? unitno = null,
+    string? customername = null,
+    string? email = null,
+    int page = 1,
+    int pageSize = 20)
+        {
+            IQueryable<Resalenoc> query = _context.Resalenocs.AsQueryable();
+
+            if (!string.IsNullOrEmpty(mastercomm))
+            {
+                query = query.Where(r => r.Mastercomm != null &&
+                                         r.Mastercomm.Trim().ToLower().Contains(mastercomm.Trim().ToLower()));
+            }
+
+            if (!string.IsNullOrEmpty(projectname))
+            {
+                query = query.Where(r => r.Projectname != null &&
+                                         r.Projectname.Trim().ToLower().Contains(projectname.Trim().ToLower()));
+            }
+
+            if (!string.IsNullOrEmpty(subprojectname))
+            {
+                query = query.Where(r => r.Subprojectname != null &&
+                                         r.Subprojectname.Trim().ToLower().Contains(subprojectname.Trim().ToLower()));
+            }
+
+            if (!string.IsNullOrEmpty(unitno))
+            {
+                query = query.Where(r => r.Unitno != null &&
+                                         r.Unitno.Trim().ToLower().Contains(unitno.Trim().ToLower()));
+            }
+
+            if (!string.IsNullOrEmpty(customername))
+            {
+                query = query.Where(r => r.Customername != null &&
+                                         r.Customername.Trim().ToLower().Contains(customername.Trim().ToLower()));
+            }
+
+            if (!string.IsNullOrEmpty(email))
+            {
+                query = query.Where(r => r.Email != null &&
+                                         r.Email.Trim().ToLower().Contains(email.Trim().ToLower()));
+            }
+
+            // Pagination
+            var skip = (page - 1) * pageSize;
+            var results = await query
+                .OrderByDescending(r => r.Id)
+                .Skip(skip)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return Ok(results);
+        }
     }
 }
