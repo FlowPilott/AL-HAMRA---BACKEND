@@ -1724,8 +1724,9 @@ namespace WAS_Management.Controllers
 
 
         [HttpPost("CreateWorkFlowStepActionRFI")]
-        public async Task<bool> CreateWorkFlowStepActionRFI(int WorkflowStepId, StepAction stepAction, [FromForm] IFormCollection formData)
+        public async Task<bool> CreateWorkFlowStepActionRFI(int WorkflowStepId, [FromForm] IFormCollection formData)
         {
+            var stepAction = await this.ConvertformDataToStepAction(formData);
             stepAction.StepId = WorkflowStepId;
             stepAction.PerformedOn = DateTime.Now;
             await _context.AddAsync(stepAction);
@@ -1887,8 +1888,9 @@ namespace WAS_Management.Controllers
 
 
         [HttpPost("CreateWorkFlowStepActionReassign")]
-        public async Task<bool> CreateWorkFlowStepActionReassign(int WorkflowStepId, StepAction stepAction, [FromForm] IFormCollection formData)
+        public async Task<bool> CreateWorkFlowStepActionReassign(int WorkflowStepId, [FromForm] IFormCollection formData)
         {
+            var stepAction = await this.ConvertformDataToStepAction(formData);
             stepAction.StepId = WorkflowStepId;
             stepAction.PerformedOn = DateTime.Now;
             await _context.AddAsync(stepAction);
