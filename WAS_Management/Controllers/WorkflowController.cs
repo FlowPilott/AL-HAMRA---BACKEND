@@ -23,6 +23,7 @@ using DinkToPdf.Contracts;
 using Interaction = WAS_Management.Models.Interaction;
 using System.Globalization;
 using System.Text.RegularExpressions;
+using System.Text.Json.Nodes;
 
 
 
@@ -1972,9 +1973,9 @@ namespace WAS_Management.Controllers
                         }
                     }
                 }
-                List<dynamic>? deserializedData2 = new List<dynamic>();
-                if (workflowstep.Details != null)
-                    deserializedData2 = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.Details);
+                //List<dynamic>? deserializedData2 = new List<dynamic>();
+                //if (workflowstep.Details != null)
+                //    deserializedData2 = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.Details);
                 foreach (var item in deserializedData)
                 {
                     if (item["Rights"].ToString() == "Edit" && item["Id"].ToString() == stepAction.PerformedBy.ToString())
@@ -1985,12 +1986,24 @@ namespace WAS_Management.Controllers
 
                     }
                 }
-                foreach (var item in deserializedData2)
+                //foreach (var item in deserializedData2)
+                //{
+                //    //  item["Files"] = pathData;
+                //    var jsonObj = (JsonObject)item;
+                //    jsonObj["Files"] = JsonSerializer.SerializeToNode(pathData); // or JsonArray if already JSON
+
+                //}
+                JsonArray deserializedData2 = null;
+                if (workflowstep.Details != null)
                 {
-                      item["Files"] = pathData;
+                     deserializedData2 = JsonNode.Parse(workflowstep.Details).AsArray();
 
+                    foreach (JsonNode item in deserializedData2)
+                    {
+                        // Add or update "Files"
+                        item["Files"] = JsonSerializer.SerializeToNode(pathData);
+                    }
                 }
-
                 // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
 
                 var data = new Dictionary<string, object> {

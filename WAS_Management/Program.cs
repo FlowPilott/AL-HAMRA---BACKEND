@@ -1,4 +1,5 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
+﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -15,10 +16,13 @@ builder.Services.AddCors();
 builder.Services.AddControllers();
 
 // Add database context
+//builder.Services.AddDbContext<WAS_ManagementContext>(options =>
+//    options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
+//                     ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))));
+var conn = builder.Configuration.GetConnectionString("DefaultConnection");
+Console.WriteLine($"[DEBUG] DefaultConnection → '{conn}'");
 builder.Services.AddDbContext<WAS_ManagementContext>(options =>
-    options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
-                     ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))));
-
+    options.UseMySql(conn, ServerVersion.AutoDetect(conn)));
 // Add authentication and JWT configuration
 builder.Services.AddAuthentication(options =>
 {
@@ -82,7 +86,11 @@ builder.Services.AddSwaggerGen(options =>
 //var context = new CustomAssemblyLoadContext();
 //context.LoadUnmanagedLibrary(uploadsDirectory);
 
-
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
+    // optionally: options.KnownNetworks.Clear(); options.KnownProxies.Clear();
+});
 builder.WebHost.UseUrls("http://0.0.0.0:6000");
 
 
@@ -119,7 +127,7 @@ if (app.Environment.IsDevelopment())
 
 
 app.UseStaticFiles();
-
+app.UseForwardedHeaders();        // <<— add here
 app.UseHttpsRedirection();
 app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 app.UseAuthentication();
