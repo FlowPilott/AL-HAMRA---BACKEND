@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.InteropServices;
+using WAS_Management.ViewModels;
 
 namespace WAS_Management.Models;
 
@@ -46,7 +47,7 @@ public class WorkflowStepActionDetails
     public DateTime? ExecutedOn { get; set; }
 
   
-    public List<dynamic> Files { get; set; } = new();
+    public List<FileItem> Files { get; set; } = new();
 }
 #nullable disable
 

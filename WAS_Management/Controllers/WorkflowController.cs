@@ -789,7 +789,7 @@ namespace WAS_Management.Controllers
 
 
 
-                    var pathData = new List<dynamic>();
+                    var pathData = new List<FileItem>();
 
 
                     var files = formData.Files;
@@ -835,7 +835,7 @@ namespace WAS_Management.Controllers
                                 workflowDocument.UploadedOn = DateTime.Now;
                                 await _context.AddAsync(workflowDocument);
                                 await _context.SaveChangesAsync();
-                                pathData.Add(new
+                                pathData.Add(new FileItem
                                 {
                                     Name = originalFileName,
                                     Path = filePath,
@@ -868,7 +868,7 @@ namespace WAS_Management.Controllers
                             if (stpid == prvstpid)
                             {
                                 detail.Answer = stepAction.Comments == null ? "" : stepAction.Comments;
-                                detail.Files = JsonConvert.SerializeObject(pathData);
+                                detail.Files = pathData;//JsonConvert.SerializeObject(pathData);
                             }
                         }
                     }
@@ -920,7 +920,7 @@ namespace WAS_Management.Controllers
                     stepAction.PerformedOn = DateTime.Now;
                     await _context.AddAsync(stepAction);
                     await _context.SaveChangesAsync();
-                    var pathData = new List<dynamic>();
+                    var pathData = new List<FileItem>();
                     var files = formData.Files;
                     if (files != null && files.Count > 0)
                     {
@@ -970,7 +970,7 @@ namespace WAS_Management.Controllers
                                 workflowDocument.UploadedOn = DateTime.Now;
                                 await _context.AddAsync(workflowDocument);
                                 await _context.SaveChangesAsync();
-                                pathData.Add(new
+                                pathData.Add(new FileItem
                                 {
                                     Name = originalFileName,
                                     Path = filePath,
@@ -1156,7 +1156,7 @@ namespace WAS_Management.Controllers
                                 await _context.SaveChangesAsync();
 
                                 // Optionally add this document info to pathData if needed
-                                pathData.Add(new
+                                pathData.Add(new FileItem
                                 {
                                     Name = pdfFileName,
                                     Path = pdfPath
@@ -1324,7 +1324,7 @@ namespace WAS_Management.Controllers
                                 await _context.SaveChangesAsync();
 
                                 // Optionally add this document info to pathData if needed
-                                pathData.Add(new
+                                pathData.Add(new FileItem
                                 {
                                     Name = pdfFileName,
                                     Path = pdfPath
@@ -1793,7 +1793,7 @@ namespace WAS_Management.Controllers
                 workflowstep.AssignedTo = jsonString;
                 workflowstep.Details = jsonString2;
 
-                var pathData = new List<dynamic>();
+                var pathData = new List<FileItem>();
 
                 var files = formData.Files;
                 if (files != null && files.Count > 0)
@@ -1838,7 +1838,7 @@ namespace WAS_Management.Controllers
                             workflowDocument.UploadedOn = DateTime.Now;
                             await _context.AddAsync(workflowDocument);
                             await _context.SaveChangesAsync();
-                            pathData.Add(new
+                            pathData.Add(new FileItem
                             {
                                 Name = originalFileName,
                                 Path = filePath,
@@ -1919,7 +1919,7 @@ namespace WAS_Management.Controllers
                 // string jsonString = JsonSerializer.Serialize(combinedData, new JsonSerializerOptions { WriteIndented = true });
                 var deserializedData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(workflowstep.AssignedTo);
 
-                var pathData = new List<dynamic>();
+                var pathData = new List<FileItem>();
 
                 var files = formData.Files;
                 if (files != null && files.Count > 0)
@@ -1964,7 +1964,7 @@ namespace WAS_Management.Controllers
                             workflowDocument.UploadedOn = DateTime.Now;
                             await _context.AddAsync(workflowDocument);
                             await _context.SaveChangesAsync();
-                            pathData.Add(new
+                            pathData.Add(new FileItem
                             {
                                 Name = originalFileName,
                                 Path = filePath,

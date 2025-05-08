@@ -82,7 +82,12 @@ namespace WAS_Management.ViewModels
 
         public List<WorkflowDocument> Documents { get; set; } = new List<WorkflowDocument>();
     }
-
+    public class FileItem
+    {
+        public string Name { get; set; }
+        public string Path { get; set; }
+        public int Id { get; set; }
+    }
     public class DetailModelVM
     {
         public string Id { get; set; }
@@ -96,7 +101,7 @@ namespace WAS_Management.ViewModels
 
         // New property to hold the answer
         public string Answer { get; set; }
-        public string Files { get; set; }
+        public List<FileItem> Files { get; set; }
         public string TaskId { get; set; }
     }
 
