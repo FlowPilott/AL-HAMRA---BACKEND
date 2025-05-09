@@ -1431,7 +1431,7 @@ namespace WAS_Management.Controllers
 
                                 string requestno = GenerateCCFormattedId(intid);
 
-                                await SendPaymentReceiptToContractor(contractor.CompanyName, workflows.Amount.ToString(), DateTime.Now.ToShortDateString(), requestno, contractor.Email, formData["paidBy"].ToString(), formData["paymentMethod"].ToString());
+                                await SendPaymentReceiptToContractor(contractor.CompanyName, workflows.Amount.ToString(), DateTime.Now.ToShortDateString(), requestno, contractor.Email, formData["paidBy"].ToString(), formData["paymentMethod"].ToString(),contractor.RenewalDate?.ToShortDateString());
                             }
 
 
@@ -2780,8 +2780,8 @@ namespace WAS_Management.Controllers
                     <p>If you require further assistance, feel free to contact us at <a style='color:black' href='mailto:propertymanagement@alhamra.ae'>propertymanagement@alhamra.ae</a>.</p>
                 </div>
                 <div class='footer'>
-                    <p>Best Regards,</p>
-                    <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+                    <p style='color:#a6272e;'>Best Regards,</p>
+                    <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
                 </div>
             </div>
         </body>
@@ -2886,8 +2886,8 @@ namespace WAS_Management.Controllers
             <p>We request you to inform the unit owner of the non-compliance and advise them to address the matter. Should you or the customer require any clarification or assistance, please feel free to reach out to us.</p>
         </div>
         <div class='footer'>
-            <p>Best Regards,</p>
-            <p><strong>{personname}</strong></p>
+            <p style='color:#a6272e;'>Best Regards,</p>
+            <p style='color:#a6272e;'><strong>{personname}</strong></p>
         </div>
     </div>
 </body>
@@ -3017,8 +3017,8 @@ namespace WAS_Management.Controllers
             <p>We request you to inform the unit owner of the non-compliance and advise them to address the matter. Should you or the customer require any clarification or assistance, please feel free to reach out to us.</p>
         </div>
         <div class='footer'>
-            <p>Best Regards,</p>
-            <p><strong>{personname}</strong></p>
+            <p style='color:#a6272e;'>Best Regards,</p>
+            <p style='color:#a6272e;'><strong>{personname}</strong></p>
         </div>
     </div>
 </body>
@@ -3145,8 +3145,8 @@ namespace WAS_Management.Controllers
             <p>If you require any further details or assistance, please do not hesitate to contact us.</p>
         </div>
         <div class='footer'>
-            <p>Best Regards,</p>
-            <p><strong>{personname}</strong></p>
+            <p style='color:#a6272e;'>Best Regards,</p>
+            <p style='color:#a6272e;'><strong>{personname}</strong></p>
         </div>
     </div>
 </body>
@@ -3262,8 +3262,8 @@ namespace WAS_Management.Controllers
                     <p>Thank you for your continued trust in Al Hamra.</p>
                 </div>
                 <div class='footer'>
-                    <p>Best Regards,</p>
-                    <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+                    <p style='color:#a6272e;'>Best Regards,</p>
+                    <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
                 </div>
             </div>
         </body>
@@ -3445,8 +3445,8 @@ namespace WAS_Management.Controllers
                     <p>For any inquiries, please feel free to contact us at <a style='color:black' href='mailto:propertymanagement@alhamra.ae'>propertymanagement@alhamra.ae</a>.</p>
                 </div>
                 <div class='footer'>
-                    <p>Best Regards,</p>
-                    <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+                    <p style='color:#a6272e;'>Best Regards,</p>
+                    <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
                 </div>
             </div>
         </body>
@@ -3518,8 +3518,8 @@ namespace WAS_Management.Controllers
             <p><a href='https://maps.google.com?q=Royal+Breeze+4' style='color: black;'>Royal Breeze 4 Location</a></p>
         </div>
         <div class='footer'>
-            <p>Best Regards,</p>
-            <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+            <p style='color:#a6272e;'>Best Regards,</p>
+            <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
         </div>
     </div>
 </body>
@@ -3553,7 +3553,7 @@ namespace WAS_Management.Controllers
 
 
         [HttpGet("SendPaymentReceiptToCustomer")]
-        public async System.Threading.Tasks.Task SendPaymentReceiptToContractor(string customerName, string amountPaid, string paymentDate, string workflowId, string customerEmail, string paidBy, string paymentMethod)
+        public async System.Threading.Tasks.Task SendPaymentReceiptToContractor(string customerName, string amountPaid, string paymentDate, string workflowId, string customerEmail, string paidBy, string paymentMethod,string RenewalDate)
         {
             try
             {
@@ -3569,6 +3569,54 @@ namespace WAS_Management.Controllers
                 string emailSubject = $"Payment Confirmation reference no {workflowId} – Validity & Next Steps";
 
                 // Email Body
+                //                string emailBody = $@"
+                //<html>
+                //<head>
+                //    <style>
+                //        body {{ font-family: Arial, sans-serif; color: #000000; margin: 0; padding: 20px; }}
+                //        .container {{ max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #000000; }}
+                //        .header {{ text-align: center; padding-bottom: 10px; border-bottom: 1px solid #000000; }}
+                //        .content {{ padding: 20px; font-size: 16px; line-height: 1.5; }}
+                //        .footer {{ text-align: center; padding: 10px; font-size: 14px; border-top: 1px solid #000000; margin-top: 20px; }}
+                //    </style>
+                //</head>
+                //<body>
+                //    <div class='container'>
+                //         <div class='header'>
+                //                    <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
+                //                </div>
+                //        <div class='content'>
+                //            <p>Dear {customerName},</p>
+                //            <p>We are pleased to confirm that we have received your payment with respect to reference no <strong>{workflowId}</strong>. Kindly find enclosed payment receipt and below payment details for your reference:</p>
+                //            <p><strong>Payment Details:</strong></p>
+                //            <table>
+                //                <tr>
+                //                    <th>Amount Paid:</th>
+                //                    <td>AED {amountPaid}/-</td>
+                //                </tr>
+                //                <tr>
+                //                    <th>Date of Payment:</th>
+                //                    <td>{paymentDate}</td>
+                //                </tr>
+                //                <tr>
+                //                    <th>Paid By:</th>
+                //                    <td>{paidBy}</td>
+                //                </tr>
+                //                <tr>
+                //                    <th>Payment Method:</th>
+                //                    <td>{paymentMethod}</td>
+                //                </tr>
+                //            </table>
+                //            <p>This payment is valid for one year, provided that all dues for the year are settled.</p>
+                //            <p>Should you have any questions or require further assistance, please feel free to reach out to us at 8002542672 or alternatively at <a href='mailto:propertymanagement@alhamra.ae'>propertymanagement@alhamra.ae</a>.</p>
+                //        </div>
+                //        <div class='footer'>
+                //            <p>Best Regards,</p>
+                //            <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+                //        </div>
+                //    </div>
+                //</body>
+                //</html>";
                 string emailBody = $@"
 <html>
 <head>
@@ -3578,41 +3626,49 @@ namespace WAS_Management.Controllers
         .header {{ text-align: center; padding-bottom: 10px; border-bottom: 1px solid #000000; }}
         .content {{ padding: 20px; font-size: 16px; line-height: 1.5; }}
         .footer {{ text-align: center; padding: 10px; font-size: 14px; border-top: 1px solid #000000; margin-top: 20px; }}
+        .payment-table {{ border-collapse: collapse; margin-top: 10px; }}
+        .payment-table td {{ padding: 6px 12px; vertical-align: top; }}
+        .payment-table .label {{ font-weight: bold; min-width: 150px; text-align: left; }}
+        .payment-table .value {{ text-align: left; }}
     </style>
 </head>
 <body>
     <div class='container'>
          <div class='header'>
-                    <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
-                </div>
+            <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
+         </div>
         <div class='content'>
             <p>Dear {customerName},</p>
             <p>We are pleased to confirm that we have received your payment with respect to reference no <strong>{workflowId}</strong>. Kindly find enclosed payment receipt and below payment details for your reference:</p>
             <p><strong>Payment Details:</strong></p>
-            <table>
+            <table class='payment-table'>
                 <tr>
-                    <th>Amount Paid:</th>
-                    <td>AED {amountPaid}/-</td>
+                    <td class='label'>Amount Paid:</td>
+                    <td class='value'>AED {amountPaid}/-</td>
                 </tr>
                 <tr>
-                    <th>Date of Payment:</th>
-                    <td>{paymentDate}</td>
+                    <td class='label'>Date of Payment:</td>
+                    <td class='value'>{paymentDate}</td>
+                </tr>
+                 <tr>
+                    <td class='label'>Valid Till:</td>
+                    <td class='value'>{RenewalDate}</td>
                 </tr>
                 <tr>
-                    <th>Paid By:</th>
-                    <td>{paidBy}</td>
+                    <td class='label'>Paid By:</td>
+                    <td class='value'>{paidBy}</td>
                 </tr>
                 <tr>
-                    <th>Payment Method:</th>
-                    <td>{paymentMethod}</td>
+                    <td class='label'>Payment Method:</td>
+                    <td class='value'>{paymentMethod}</td>
                 </tr>
             </table>
             <p>This payment is valid for one year, provided that all dues for the year are settled.</p>
             <p>Should you have any questions or require further assistance, please feel free to reach out to us at 8002542672 or alternatively at <a href='mailto:propertymanagement@alhamra.ae'>propertymanagement@alhamra.ae</a>.</p>
         </div>
         <div class='footer'>
-            <p>Best Regards,</p>
-            <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+            <p style='color:#a6272e;'>Best Regards,</p>
+            <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
         </div>
     </div>
 </body>
@@ -3746,8 +3802,8 @@ namespace WAS_Management.Controllers
                     <p>For any inquiries, please feel free to contact us at <a style='color:black' href='mailto:propertymanagement@alhamra.ae'>propertymanagement@alhamra.ae</a>.</p>
                 </div>
                 <div class='footer'>
-                    <p>Best Regards,</p>
-                    <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+                    <p style='color:#a6272e;'>Best Regards,</p>
+                    <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
                 </div>
             </div>
         </body>
@@ -3862,8 +3918,8 @@ namespace WAS_Management.Controllers
                 <p>If you have any questions or need further assistance, please feel free to contact us.</p>
             </div>
             <div class='footer'>
-                <p>Best regards,</p>
-                <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+                <p style='color:#a6272e;'>Best regards,</p>
+                <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
             </div>
         </div>
     </body>
