@@ -91,7 +91,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
     // optionally: options.KnownNetworks.Clear(); options.KnownProxies.Clear();
 });
-//builder.WebHost.UseUrls("http://0.0.0.0:6000");
+builder.WebHost.UseUrls("http://0.0.0.0:6000");
 
 
 var app = builder.Build();

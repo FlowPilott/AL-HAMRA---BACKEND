@@ -637,7 +637,7 @@ namespace WAS_Management.Controllers
             text-align: center;
             padding: 10px;
             font-size: 14px;
-            color: #777777;
+            color: #c70e0e;
             border-top: 1px solid #e0e0e0;
             margin-top: 20px;
         }}
@@ -667,8 +667,8 @@ namespace WAS_Management.Controllers
             </p>
         </div>
         <div class='footer'>
-            <p>Best regards,</p>
-            <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+            <p style='color:#a6272e;'>Best regards,</p>
+            <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
         </div>
     </div>
 </body>
@@ -766,7 +766,7 @@ namespace WAS_Management.Controllers
             text-align: center;
             padding: 10px;
             font-size: 14px;
-            color: #777777;
+            color: #c70e0e;
             border-top: 1px solid #e0e0e0;
             margin-top: 20px;
         }}
@@ -796,8 +796,8 @@ namespace WAS_Management.Controllers
             </p>
         </div>
         <div class='footer'>
-            <p style='color:white;'>Best regards,</p>
-            <p style='color:white;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+            <p style='color:#a6272e;'>Best regards,</p>
+            <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
         </div>
     </div>
 </body>
@@ -926,7 +926,7 @@ namespace WAS_Management.Controllers
             .header {{ text-align: center; padding-bottom: 10px; border-bottom: 1px solid #000000; }}
             .header img {{ max-width: 180px; }}
             .content {{ padding: 20px; font-size: 16px; color: #000000; line-height: 1.5; }}
-            .footer {{ text-align: center; padding: 10px; font-size: 14px; color: #000000; border-top: 1px solid #000000; margin-top: 20px; }}
+            .footer {{ text-align: center; padding: 10px; font-size: 14px; color: #c70e0e; border-top: 1px solid #000000; margin-top: 20px; }}
             a {{ color: #000000; text-decoration: none; font-weight: bold; }}
         </style>
     </head>
@@ -944,8 +944,8 @@ namespace WAS_Management.Controllers
                 <p>If you have any questions, please contact us at <a href='mailto:propertymanagement@alhamra.ae'>propertymanagement@alhamra.ae</a>.</p>
             </div>
             <div class='footer'>
-                <p>Best regards,</p>
-                <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+                <p style='color:#a6272e;'>Best regards,</p>
+                <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
             </div>
         </div>
     </body>
@@ -1035,7 +1035,7 @@ namespace WAS_Management.Controllers
                     text-align: center;
                     padding: 10px;
                     font-size: 14px;
-                    color: #000000;
+                    color: #c70e0e;
                     border-top: 1px solid #000000;
                     margin-top: 20px;
                 }}
@@ -1133,8 +1133,8 @@ namespace WAS_Management.Controllers
                     <p>If you have any questions, please contact us at <a style='color:black' href='mailto:propertymanagement@alhamra.ae'>propertymanagement@alhamra.ae</a>.</p>
                 </div>
                 <div class='footer'>
-                    <p>Best regards,</p>
-                    <p><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+                    <p style='color:#a6272e;'>Best regards,</p>
+                    <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
                 </div>
             </div>
         </body>
