@@ -29,6 +29,8 @@ public partial class WAS_ManagementContext : DbContext
 
     public virtual DbSet<StepAction> StepActions { get; set; }
 
+    public virtual DbSet<WAS_Management.Models.Task> Tasks { get; set; }
+
     public virtual DbSet<Unit> Units { get; set; }
 
     public virtual DbSet<User> Users { get; set; }
@@ -44,7 +46,7 @@ public partial class WAS_ManagementContext : DbContext
     public virtual DbSet<WorkflowType> WorkflowTypes { get; set; }
 
     //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    //    => optionsBuilder.UseMySql("name=DefaultConnection", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.41-mysql"));
+    //    => optionsBuilder.UseMySql("name=DefaultConnection", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.40-mysql"));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -310,7 +312,7 @@ public partial class WAS_ManagementContext : DbContext
                 .HasMaxLength(50)
                 .HasColumnName("email");
             entity.Property(e => e.Intiatorname)
-                .HasMaxLength(255)
+                .HasMaxLength(50)
                 .HasColumnName("intiatorname");
             entity.Property(e => e.Mastercomm)
                 .HasMaxLength(255)
@@ -366,6 +368,34 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.VendorName).HasMaxLength(255);
         });
 
+        modelBuilder.Entity<WAS_Management.Models.Task>(entity =>
+        {
+            entity.HasKey(e => e.Id).HasName("PRIMARY");
+
+            entity.ToTable("tasks");
+
+            entity.Property(e => e.Id).HasColumnName("id");
+            entity.Property(e => e.Ageing).HasColumnName("ageing");
+            entity.Property(e => e.AssignedTo).HasColumnName("assigned_to");
+            entity.Property(e => e.Department)
+                .HasMaxLength(255)
+                .HasColumnName("department");
+            entity.Property(e => e.DueDate)
+                .HasColumnType("datetime")
+                .HasColumnName("due_date");
+            entity.Property(e => e.Status)
+                .HasMaxLength(50)
+                .HasColumnName("status");
+            entity.Property(e => e.StepId).HasColumnName("step_id");
+            entity.Property(e => e.TaskType)
+                .HasColumnType("enum('Workflow','RFI','Reassigned','Return Step')")
+                .HasColumnName("task_type");
+            entity.Property(e => e.Template)
+                .HasMaxLength(255)
+                .HasColumnName("template");
+            entity.Property(e => e.WorkflowId).HasColumnName("workflow_id");
+        });
+
         modelBuilder.Entity<Unit>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
@@ -412,6 +442,9 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.Email)
                 .HasMaxLength(50)
                 .HasColumnName("email");
+            entity.Property(e => e.Fullname)
+                .HasMaxLength(255)
+                .HasColumnName("fullname");
             entity.Property(e => e.Password)
                 .HasMaxLength(255)
                 .HasColumnName("password");
@@ -435,7 +468,9 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.DueDate)
                 .HasColumnType("datetime")
                 .HasColumnName("due_date");
-            entity.Property(e => e.Isviewed).HasColumnName("isviewed");
+            entity.Property(e => e.Isviewed)
+                .HasDefaultValueSql("'0'")
+                .HasColumnName("isviewed");
             entity.Property(e => e.Status)
                 .HasMaxLength(50)
                 .HasColumnName("status");

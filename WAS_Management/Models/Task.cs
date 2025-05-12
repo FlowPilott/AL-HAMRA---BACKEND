@@ -24,6 +24,4 @@ public partial class Task
     public string? Status { get; set; }
 
     public int? AssignedTo { get; set; }
-
-    public bool? Isviewed { get; set; }
 }
