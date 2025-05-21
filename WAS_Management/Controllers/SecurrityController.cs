@@ -89,6 +89,57 @@ namespace WAS_Management.Controllers
                 return new JsonResult(errorData);
             }
         }
+        [HttpPost("ChangePassword")]
+        public async Task<JsonResult> ChangePassword(string username, string password)
+        {
+            try
+            {
+                // Fetch user by username
+                var user = await _context.Users.FirstOrDefaultAsync(x => x.Username == username);
+
+                // If user is not found
+                if (user == null)
+                {
+                    var errorData = new
+                    {
+                        Result = "",
+                        ErrorCode = "405",
+                        ErrorMessage = "Username not found.",
+                        Data = ""
+                    };
+                    //return Json(errorDa.ta);
+                    return new JsonResult(errorData);
+                }
+
+                // Verify password (assuming plaintext for simplicity; use proper hashing in production)
+               user.Password = password;
+               await _context.SaveChangesAsync();
+                // Success response
+                var successData = new
+                {
+                    Result = "Password changes successfully",
+                    ErrorCode = "200",
+                    ErrorMessage = "",
+                    Data = user
+                };
+                return new JsonResult(successData);
+            }
+            catch (Exception ex)
+            {
+                // Log the exception (replace with your logging mechanism)
+                Console.WriteLine(ex);
+
+                // Error response
+                var errorData = new
+                {
+                    Result = ex.Message,
+                    ErrorCode = "500",
+                    ErrorMessage = "An unexpected error occurred.",
+                    Data = ex.InnerException != null ? ex.InnerException.Message : ""
+                };
+                return new JsonResult(errorData);
+            }
+        }
         private async Task<string> generateToken()
         {
             // var jwtSettings = _configuration.GetSection("JwtSettings");

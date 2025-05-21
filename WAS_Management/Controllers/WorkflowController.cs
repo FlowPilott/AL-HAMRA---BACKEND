@@ -24,6 +24,7 @@ using Interaction = WAS_Management.Models.Interaction;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Text.Json.Nodes;
+using System.Threading.Tasks;
 
 
 
@@ -849,11 +850,15 @@ namespace WAS_Management.Controllers
 
 
                     var task = await _context.UserTasks.Where(x => x.Id == tskid).FirstOrDefaultAsync();
-
                     task.Status = "Approved";
                     await _context.SaveChangesAsync();
 
-
+                    var pretaskid = await _context.UserTasks.Where(x => x.WorkflowId == prevstep.WorkflowId && x.AssignedTo == stepaction.PerformedBy && x.StepId == stepaction.StepId).FirstOrDefaultAsync();
+                    if (pretaskid != null)
+                    {
+                        pretaskid.Isviewed = false;
+                        await _context.SaveChangesAsync();
+                    }
                     // Safely parse the existing JSON details
                     var detailsList = JsonConvert.DeserializeObject<List<DetailModelVM>>(prevstep.Details)
                                       ?? new List<DetailModelVM>();
@@ -868,16 +873,10 @@ namespace WAS_Management.Controllers
                             if (stpid == prvstpid)
                             {
                                 detail.Answer = stepAction.Comments == null ? "" : stepAction.Comments;
-                                detail.Files = pathData;//JsonConvert.SerializeObject(pathData);
+                                detail.Files.AddRange(pathData);//JsonConvert.SerializeObject(pathData);
                             }
                         }
                     }
-
-
-
-
-
-
 
                     var combinedData = new
                     {
@@ -1427,6 +1426,7 @@ namespace WAS_Management.Controllers
                                 workflow.ReceiptDate = DateTime.Now;
                                 workflow.ReceiptBy = "6";
                                 workflow.ReceiptNo = GenerateCCFormattedId(Convert.ToInt32(workflows.InteractionId));
+                                workflows.PaidBy = stepAction.PaidBy;
                                 await _context.SaveChangesAsync();
 
                                 string requestno = GenerateCCFormattedId(intid);
@@ -1568,7 +1568,8 @@ namespace WAS_Management.Controllers
                                     var currentstep = await _context.Users.Where(x => x.Id == approverid).FirstOrDefaultAsync();
                                     var user = await _context.Users.Where(x => x.Username == resalenoc.Intiatorname).FirstOrDefaultAsync();
 
-                                    approveresalenoc(user.Email, "Sales Team", resalenoc.Unitno, stepAction.Checkboxes, files, currentstep.Username);
+                                    //approveresalenoc(user.Email, "Sales Team", resalenoc.Unitno, stepAction.Checkboxes, files, currentstep.Username);
+                                    approveresalenoc("connect@flowpilot.ae", "Sales Team", resalenoc.Unitno, stepAction.Checkboxes, files, currentstep.Username);
                                 }
 
                             }
@@ -1763,16 +1764,17 @@ namespace WAS_Management.Controllers
 
                 if (workflowstep.Details != null)
                     deserializedData2 = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.Details);
+          
 
-                // Add the new data to the deserialized lists
-                deserializedData.Add(new
-                {
-                    StepId = stepAction.Id,
-                    Id = stepAction.AssignTo.ToString(),
-                    Status = "Not Approved",
-                    Rights = "RFI",
-                    TaskId = taskId
-                });
+                    // Add the new data to the deserialized lists
+                    deserializedData.Add(new
+                    {
+                        StepId = stepAction.Id,
+                        Id = stepAction.AssignTo.ToString(),
+                        Status = "Not Approved",
+                        Rights = "RFI",
+                        TaskId = taskId
+                    });
 
                 //deserializedData2.Add(new
                 //{
@@ -1994,14 +1996,22 @@ namespace WAS_Management.Controllers
 
                 //}
                 JsonArray deserializedData2 = null;
-                if (workflowstep.Details != null)
+                if (string.IsNullOrWhiteSpace(workflowstep.Details) || workflowstep.Details == "null")
                 {
-                     deserializedData2 = JsonNode.Parse(workflowstep.Details).AsArray();
-
-                    foreach (JsonNode item in deserializedData2)
+                    // If Details is null or empty, start with a new array
+                    deserializedData2 = new JsonArray();
+                }
+                else
+                {
+                    if (workflowstep.Details != null)
                     {
-                        // Add or update "Files"
-                        item["Files"] = JsonSerializer.SerializeToNode(pathData);
+                        deserializedData2 = JsonNode.Parse(workflowstep.Details).AsArray();
+
+                        //foreach (JsonNode item in deserializedData2)
+                        //{
+                        //    // Add or update "Files"
+                        //    item["Files"] = JsonSerializer.SerializeToNode(pathData);
+                        //}
                     }
                 }
                 // var deserializedData = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.AssignedTo);
@@ -2022,7 +2032,7 @@ namespace WAS_Management.Controllers
 
 
 
-                deserializedData2.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "Edit", Comment = stepAction.Comments, RequestedBy = stepAction.PerformedBy.ToString(), PerformedOn = DateTime.Now, IterationType = "Reassigned", TaskId = taskId });
+                deserializedData2.Add(new { Id = stepAction.AssignTo.ToString(), Status = "Not Approved", Rights = "Edit", Comment = stepAction.Comments, RequestedBy = stepAction.PerformedBy.ToString(), PerformedOn = DateTime.Now, IterationType = "Reassigned", TaskId = taskId, Files = JsonSerializer.SerializeToNode(pathData) });
 
 
                 // Serialize the updated data again
@@ -2178,7 +2188,7 @@ namespace WAS_Management.Controllers
 
 
         [HttpPost("ReturnWorkFlowStepAction")]
-        public async Task<bool> ReturnWorkFlowStepAction(int WorkflowStepId, StepAction stepAction)
+        public async Task<bool> ReturnWorkFlowStepAction(int WorkflowStepId,int ctaskid, StepAction stepAction)
         {
             stepAction.StepId = WorkflowStepId;
             stepAction.PerformedOn = DateTime.Now;
@@ -2229,7 +2239,7 @@ namespace WAS_Management.Controllers
                         }
                     }
                     //Previous Step Json
-                    string p_currentstepjson = JsonConvert.SerializeObject(previousstepjson, Formatting.Indented);
+                    
 
 
                     foreach (var item in deserializedData)
@@ -2238,6 +2248,14 @@ namespace WAS_Management.Controllers
                         {
                             var taskid = await CreateTask(workflowstep.WorkflowId.Value, prevstepflow.Id.ToString(), "Return Step", Convert.ToInt32(item["Id"].ToString()), "CONTRACTOR REGISTRATION", workflows.InitiatorId.Value);
                             prevstepflow.Status = "In Progress";
+                            foreach(var i in previousstepjson)
+                            {
+                                if(i["Id"]?.ToString() == item["Id"].ToString())
+                                {
+                                    i["TaskId"] = taskid;
+                                }
+                            }
+                            string p_currentstepjson = JsonConvert.SerializeObject(previousstepjson, Formatting.Indented);
                             prevstepflow.AssignedTo = p_currentstepjson;
                             await _context.SaveChangesAsync();
                             item["Status"] = "Not Approved";
@@ -2259,8 +2277,13 @@ namespace WAS_Management.Controllers
                     workflowstep.Status = "Not Started";
                     await _context.SaveChangesAsync();
 
-
-
+                    var task = await _context.UserTasks
+    .FirstOrDefaultAsync(t => t.Id == ctaskid);
+                    if (task != null)
+                    {
+                        _context.UserTasks.Remove(task);
+                        await _context.SaveChangesAsync();
+                    }
 
                 }
                 else if (workflows.Subject == "Interaction Recording Form")
@@ -2300,7 +2323,7 @@ namespace WAS_Management.Controllers
                         }
                     }
                     //Previous Step Json
-                    string p_currentstepjson = JsonConvert.SerializeObject(previousstepjson, Formatting.Indented);
+                    //string p_currentstepjson = JsonConvert.SerializeObject(previousstepjson, Formatting.Indented);
 
 
                     foreach (var item in deserializedData)
@@ -2309,6 +2332,14 @@ namespace WAS_Management.Controllers
                         {
                             var taskid = await CreateTask(workflowstep.WorkflowId.Value, prevstepflow.Id.ToString(), "Return Step", Convert.ToInt32(item["Id"].ToString()), "Modification Request", workflows.InitiatorId.Value);
                             prevstepflow.Status = "In Progress";
+                            foreach (var i in previousstepjson)
+                            {
+                                if (i["Id"]?.ToString() == item["Id"].ToString())
+                                {
+                                    i["TaskId"] = taskid;
+                                }
+                            }
+                            string p_currentstepjson = JsonConvert.SerializeObject(previousstepjson, Formatting.Indented);
                             prevstepflow.AssignedTo = p_currentstepjson;
                             await _context.SaveChangesAsync();
                             item["Status"] = "Not Approved";
@@ -2331,6 +2362,13 @@ namespace WAS_Management.Controllers
                     await _context.SaveChangesAsync();
 
 
+                    var task = await _context.UserTasks
+    .FirstOrDefaultAsync(t => t.Id == ctaskid);
+                    if (task != null)
+                    {
+                        _context.UserTasks.Remove(task);
+                        await _context.SaveChangesAsync();
+                    }
 
                 }
                 else if (workflows.Subject == "Resale NOC")
@@ -2367,7 +2405,7 @@ namespace WAS_Management.Controllers
                         }
                     }
                     //Previous Step Json
-                    string p_currentstepjson = JsonConvert.SerializeObject(previousstepjson, Formatting.Indented);
+                   // string p_currentstepjson = JsonConvert.SerializeObject(previousstepjson, Formatting.Indented);
 
 
                     foreach (var item in deserializedData)
@@ -2376,6 +2414,14 @@ namespace WAS_Management.Controllers
                         {
                             var taskid = await CreateTask(workflowstep.WorkflowId.Value, prevstepflow.Id.ToString(), "Return Step", Convert.ToInt32(item["Id"].ToString()), "Resale NOC", workflows.InitiatorId.Value);
                             prevstepflow.Status = "In Progress";
+                            foreach (var i in previousstepjson)
+                            {
+                                if (i["Id"]?.ToString() == item["Id"].ToString())
+                                {
+                                    i["TaskId"] = taskid;
+                                }
+                            }
+                            string p_currentstepjson = JsonConvert.SerializeObject(previousstepjson, Formatting.Indented);
                             prevstepflow.AssignedTo = p_currentstepjson;
                             await _context.SaveChangesAsync();
                             item["Status"] = "Not Approved";
@@ -2398,6 +2444,13 @@ namespace WAS_Management.Controllers
                     await _context.SaveChangesAsync();
 
 
+                    var task = await _context.UserTasks
+    .FirstOrDefaultAsync(t => t.Id == ctaskid);
+                    if (task != null)
+                    {
+                        _context.UserTasks.Remove(task);
+                        await _context.SaveChangesAsync();
+                    }
 
                 }
 
@@ -2601,9 +2654,9 @@ namespace WAS_Management.Controllers
                 int completedSteps = wfm
                     .Count(x => x.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase));
 
-                int progressPercentage = (totalSteps > 0)
+                int progressPercentage = wf.Status == "Approved"? 100:((totalSteps > 0)
                     ? (completedSteps * 100) / totalSteps
-                    : 0;
+                    : 0);
 
                 WorkFlowVMobj.Progress = progressPercentage.ToString();
 

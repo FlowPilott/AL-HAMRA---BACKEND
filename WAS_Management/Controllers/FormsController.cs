@@ -842,7 +842,9 @@ namespace WAS_Management.Controllers
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
                 };
-
+                string TicketNo = Guid.NewGuid()
+                       .ToString("N")             // 32 hex chars, no hyphens
+                       .Substring(0, 10);         // take first 10
                 string emailBody = $@"
 <html>
 <head>
@@ -862,6 +864,7 @@ namespace WAS_Management.Controllers
             <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Logo'>
         </div>
         <div class='content'>
+            <p>Ticket No: {TicketNo}</p>
             <p>Issue Reported By {customername},</p>
             <p>{issue}</p>
         </div>
