@@ -45,6 +45,7 @@ namespace WAS_Management.Middleware
             //    return;
             //}
             // Bypass the middleware for token generation endpoint
+            _logger.LogWarning(context.Request.Path);
             if (context.Request.Path.StartsWithSegments("/api/Security/Index"))
             {
                 await _next(context); // Allow the token generation request to proceed

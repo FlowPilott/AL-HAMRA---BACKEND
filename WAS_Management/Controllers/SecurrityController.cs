@@ -8,6 +8,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
 using WAS_Management.Data;
+using WAS_Management.Models;
 using WAS_Management.ViewModels;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -61,7 +62,7 @@ namespace WAS_Management.Controllers
                     };
                     return new JsonResult(errorData);
                 }
-                var token = await generateToken();
+                var token = await generateToken(user);
                 // Success response
                 var successData = new
                 {
@@ -90,12 +91,26 @@ namespace WAS_Management.Controllers
             }
         }
         [HttpPost("ChangePassword")]
-        public async Task<JsonResult> ChangePassword(string username, string password)
+        public async Task<JsonResult> ChangePassword(string password)
         {
             try
             {
-                // Fetch user by username
-                var user = await _context.Users.FirstOrDefaultAsync(x => x.Username == username);
+                // Get user ID from the JWT token claims
+                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (string.IsNullOrEmpty(userId))
+                {
+                    var errorData = new
+                    {
+                        Result = "",
+                        ErrorCode = "401",
+                        ErrorMessage = "User not authenticated.",
+                        Data = ""
+                    };
+                    return new JsonResult(errorData);
+                }
+
+                // Fetch user by ID
+                var user = await _context.Users.FirstOrDefaultAsync(x => x.Id == int.Parse(userId));
 
                 // If user is not found
                 if (user == null)
@@ -103,21 +118,21 @@ namespace WAS_Management.Controllers
                     var errorData = new
                     {
                         Result = "",
-                        ErrorCode = "405",
-                        ErrorMessage = "Username not found.",
+                        ErrorCode = "404",
+                        ErrorMessage = "User not found.",
                         Data = ""
                     };
-                    //return Json(errorDa.ta);
                     return new JsonResult(errorData);
                 }
 
-                // Verify password (assuming plaintext for simplicity; use proper hashing in production)
-               user.Password = password;
-               await _context.SaveChangesAsync();
+                // Update password
+                user.Password = password;
+                await _context.SaveChangesAsync();
+
                 // Success response
                 var successData = new
                 {
-                    Result = "Password changes successfully",
+                    Result = "Password changed successfully",
                     ErrorCode = "200",
                     ErrorMessage = "",
                     Data = user
@@ -140,18 +155,43 @@ namespace WAS_Management.Controllers
                 return new JsonResult(errorData);
             }
         }
-        private async Task<string> generateToken()
+        //private async Task<string> generateToken()
+        //{
+        //    // var jwtSettings = _configuration.GetSection("JwtSettings");
+        //    var issuer = _jwtSettings.Issuer;
+        //    var audience = _jwtSettings.Audience;
+        //    var secretKey = _jwtSettings.Secret;
+        //    var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+
+        //    var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        //    var token = new JwtSecurityToken(
+        //        issuer: issuer,
+        //        audience: audience,
+        //        expires: DateTime.Now.AddMinutes(_jwtSettings.ExpireMinutes),
+        //        signingCredentials: credentials);
+
+        //    var tokenString = new JwtSecurityTokenHandler().WriteToken(token);
+        //    return tokenString;
+        //}
+        private async Task<string> generateToken(User user)
         {
-            // var jwtSettings = _configuration.GetSection("JwtSettings");
             var issuer = _jwtSettings.Issuer;
             var audience = _jwtSettings.Audience;
             var secretKey = _jwtSettings.Secret;
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
 
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.Email, user.Email),
+                new Claim(ClaimTypes.Name, user.Fullname)
+            };
+
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
             var token = new JwtSecurityToken(
                 issuer: issuer,
                 audience: audience,
+                claims: claims,
                 expires: DateTime.Now.AddMinutes(_jwtSettings.ExpireMinutes),
                 signingCredentials: credentials);
 
