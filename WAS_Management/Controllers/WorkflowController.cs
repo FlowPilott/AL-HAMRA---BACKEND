@@ -1340,11 +1340,19 @@ namespace WAS_Management.Controllers
                                .Where(i => i.Id == interactionid)
                                .FirstOrDefault();
 
-
+                                var emailDetails2 = _context.Interactions
+                             .Where(i => i.Id == interactionid)
+                             .Select(i => new
+                             {
+                                 i.EmailAddress,
+                                 i.OwnerName,
+                             })
+                             .FirstOrDefault();
 
                                 var workpermitpath = await SaveWorkPermitAsPdfAsync(WorkflowStepId, emailDetails, "Bejoy", stepAction.Comments, workflow.Worktype);
 
                                 await SendPaymentConfirmationEmail(emailDetails.EmailAddress, stepAction.Comments, workpermitpath);
+                                await SendPaymentConfirmationEmail(emailDetails2.EmailAddress, stepAction.Comments, workpermitpath);
                             }
                         }
                         #endregion
@@ -1603,7 +1611,7 @@ namespace WAS_Management.Controllers
                                 }
 
                                 // Step 3: Send rejection email
-                                rejectresalenoc(
+                               await  rejectresalenoc(
                                     initiatorUser.Email,
                                     "Sales Team",
                                     resalenoc.Unitno,
@@ -1621,6 +1629,8 @@ namespace WAS_Management.Controllers
 
                                 // Step 5: Reject workflow and save
                                 workflows.Status = "Rejected";
+                                //await rejectesalenoc("connect@flowpilot.ae", "Sales Team", resalenoc.Unitno, stepAction.Checkboxes, files, currentStepUser.Username);
+
                                 await _context.SaveChangesAsync();
 
                             }
@@ -3230,6 +3240,106 @@ namespace WAS_Management.Controllers
             }
         }
 
+
+        [HttpGet("rejectesalenoc")]
+        public async System.Threading.Tasks.Task rejectesalenoc(string email, string salesOpsStaffName, string unitCode, List<string> nonComplianceIssues, IFormFileCollection? files, string personname)
+        {
+            try
+            {
+                // Initialize SMTP client with configuration
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    EnableSsl = true,
+                };
+
+                // Email Subject - Updated for rejection
+                string emailSubject = $"NOC Inspection Rejection - Unit {unitCode}";
+
+                // Convert nonComplianceIssues list to bullet points
+                string nonComplianceIssuesHtml = "<ul>" + string.Join("", nonComplianceIssues.Select(issue => $"<li>{issue}</li>")) + "</ul>";
+
+                // Email Body - Updated for rejection content
+                string emailBody = $@"
+<html>
+<head>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+            margin: 0;
+            padding: 20px;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #000000;
+        }}
+        .header {{
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #000000;
+        }}
+        .content {{
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            border-top: 1px solid #000000;
+            margin-top: 20px;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <h2>NOC Inspection Rejection</h2>
+        </div>
+        <div class='content'>
+            <p>Dear {salesOpsStaffName},</p>
+            <p>We regret to inform you that the NOC inspection for the property **{unitCode}** has been rejected due to the following non-compliance issues:</p>
+            {nonComplianceIssuesHtml}
+            <p>Please address these issues and resubmit the NOC inspection request once they have been resolved.</p>            
+            <p>If you require any further details or assistance, please do not hesitate to contact us.</p>
+        </div>
+        <div class='footer'>
+            <p style='color:#a6272e;'>Best Regards,</p>
+            <p style='color:#a6272e;'><strong>{personname}</strong></p>
+        </div>
+    </div>
+</body>
+</html>";
+
+                // Create the email message
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = emailSubject,
+                    Body = emailBody,
+                    IsBodyHtml = true,
+                };
+
+                // Add recipient
+                mailMessage.To.Add(email);
+
+                // Send the email
+                await smtpClient.SendMailAsync(mailMessage);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error sending email: {ex.Message}");
+                throw;
+            }
+        }
 
 
 
