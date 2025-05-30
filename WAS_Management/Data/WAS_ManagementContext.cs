@@ -29,7 +29,7 @@ public partial class WAS_ManagementContext : DbContext
 
     public virtual DbSet<StepAction> StepActions { get; set; }
 
-    public virtual DbSet<WAS_Management.Models.Task> Tasks { get; set; }
+    public virtual DbSet<Models.Task> Tasks { get; set; }
 
     public virtual DbSet<Unit> Units { get; set; }
 
@@ -45,8 +45,8 @@ public partial class WAS_ManagementContext : DbContext
 
     public virtual DbSet<WorkflowType> WorkflowTypes { get; set; }
 
-    //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-    //    => optionsBuilder.UseMySql("name=DefaultConnection", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.40-mysql"));
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        => optionsBuilder.UseMySql("name=DefaultConnection", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.40-mysql"));
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -368,7 +368,7 @@ public partial class WAS_ManagementContext : DbContext
             entity.Property(e => e.VendorName).HasMaxLength(255);
         });
 
-        modelBuilder.Entity<WAS_Management.Models.Task>(entity =>
+        modelBuilder.Entity<Models.Task>(entity =>
         {
             entity.HasKey(e => e.Id).HasName("PRIMARY");
 

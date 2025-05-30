@@ -127,6 +127,7 @@ namespace WAS_Management.Controllers
 
                 // Update password
                 user.Password = password;
+                user.ChangePassword = false;
                 await _context.SaveChangesAsync();
 
                 // Success response

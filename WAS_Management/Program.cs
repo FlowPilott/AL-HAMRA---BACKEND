@@ -2,13 +2,20 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Serilog;
 using System.Text;
 using WAS_Management.Data;
 using WAS_Management.Middleware;
 using WAS_Management.ViewModels;
 
 var builder = WebApplication.CreateBuilder(args);
-
+// Configure Serilog
+Log.Logger = new LoggerConfiguration()
+    .ReadFrom.Configuration(builder.Configuration) // Reads from appsettings.json "Serilog" section
+    .Enrich.FromLogContext()
+    .WriteTo.Console()
+    .WriteTo.File("logs/alhamra-.txt", rollingInterval: RollingInterval.Day) // Example file sink
+    .CreateLogger();
 // Add CORS policy
 builder.Services.AddCors();
 
