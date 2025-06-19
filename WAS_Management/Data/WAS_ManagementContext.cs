@@ -45,9 +45,7 @@ public partial class WAS_ManagementContext : DbContext
 
     public virtual DbSet<WorkflowType> WorkflowTypes { get; set; }
 
-    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-        => optionsBuilder.UseMySql("name=DefaultConnection", Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.40-mysql"));
-
+   
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder

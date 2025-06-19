@@ -218,7 +218,7 @@ namespace WAS_Management.Controllers
             if (startDuration.HasValue && endDuration.HasValue)
             {
                 var durationDiff = (endDuration.Value - startDuration.Value).Days;
-                if (durationDiff > 30)
+                if (durationDiff > 92)
                 {
                     return BadRequest("The duration between start and end date should not exceed 1 month.");
                 }
