@@ -2164,7 +2164,7 @@ namespace WAS_Management.Controllers
                 .Replace("WORKDESCRIPTION", intobj.InternalWork)
                 .Replace("VILLA#", intobj.UnitNumber)
                 .Replace("TYPEOFWORK", typeofwork)
-                .Replace("APPROVALBY", approvalby)
+                .Replace("APPROVALBY", "Al Hamra Property Management Department")///approvalby
                 .Replace("AREAOFWORK", intobj.InternalWork)
                 .Replace("SPECIALCOMMENTS", comments);
 
