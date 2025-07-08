@@ -32,7 +32,7 @@ public partial class StepAction
 public partial class Interaction
 {
     [NotMapped]
-    public string paymentOption { get; set; }
+    public string? paymentOption { get; set; }
 
 }
 
