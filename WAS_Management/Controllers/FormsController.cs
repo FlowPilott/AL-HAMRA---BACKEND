@@ -30,10 +30,12 @@ namespace WAS_Management.Controllers
         private readonly WAS_ManagementContext _context;
         private readonly IConfiguration _configuration;
 
-        public FormsController(WAS_ManagementContext context, IConfiguration configuration)
+        private readonly ILogger<WorkflowController> _logger;
+        public FormsController(WAS_ManagementContext context, IConfiguration configuration, ILogger<WorkflowController> logger)
         {
             _context = context;
             _configuration = configuration;
+            _logger = logger;
         }
 
         [HttpGet("interactions")]
@@ -334,7 +336,7 @@ namespace WAS_Management.Controllers
             string workflowname = /* your logic to define the workflow name */ "INTERACTION RECORDING FORM";
 
             // Return or store the result from the workflow as needed
-            var workflowResult = await new WorkflowController(_context, _configuration).CreateWorkFlow(initiator_id, workflowname, jsonInfo, interaction.Id, "");
+            var workflowResult = await new WorkflowController(_context, _configuration,_logger).CreateWorkFlow(initiator_id, workflowname, jsonInfo, interaction.Id, "");
 
             // You could return the workflow result directly or combine it with your interaction
 
@@ -409,14 +411,14 @@ namespace WAS_Management.Controllers
                 string workflowname = /* your logic to define the workflow name */ "Resale NOC";
 
                 // Return or store the result from the workflow as needed
-                var workflowResult = await new WorkflowController(_context, _configuration).CreateWorkFlow(initiator_id, workflowname, jsonInfo, resalenc.Id, "");
+                var workflowResult = await new WorkflowController(_context, _configuration, _logger).CreateWorkFlow(initiator_id, workflowname, jsonInfo, resalenc.Id, "");
 
                 // You could return the workflow result directly or combine it with your interaction
 
                 //string customertoken = GenerateFormattedId(interaction.Id);
                 //await SendModificationEmail(interaction, customertoken, "ExternalForm");
 
-                return true;
+                return workflowResult;
             }
             catch (Exception ex)
             {
@@ -539,7 +541,7 @@ namespace WAS_Management.Controllers
 
 
             // Return or store the result from the workflow as needed
-            var workflowResult = await new WorkflowController(_context, _configuration).CreateWorkFlow(initiator_id, workflowname, jsonInfo, interaction.Id, formtype);
+            var workflowResult = await new WorkflowController(_context, _configuration,_logger).CreateWorkFlow(initiator_id, workflowname, jsonInfo, interaction.Id, formtype);
 
 
             // You could return the workflow result directly or combine it with your interaction
@@ -581,6 +583,8 @@ namespace WAS_Management.Controllers
                 Port = int.Parse(_configuration["Mail:Port"]),
                 Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                 EnableSsl = true,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false,
             };
 
             string emailSubject = $"Contractor Renewal";
@@ -700,6 +704,8 @@ namespace WAS_Management.Controllers
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
 
                 Contractor cr = new Contractor();
@@ -841,6 +847,8 @@ namespace WAS_Management.Controllers
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
                 string TicketNo = Guid.NewGuid()
                        .ToString("N")             // 32 hex chars, no hyphens
@@ -916,6 +924,8 @@ namespace WAS_Management.Controllers
                 Port = int.Parse(_configuration["Mail:Port"]),
                 Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                 EnableSsl = true,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false,
             };
 
             string emailSubject = $"Update on Your Service Request - ID: {customertoken}";
@@ -979,6 +989,8 @@ namespace WAS_Management.Controllers
                 Port = int.Parse(_configuration["Mail:Port"]),
                 Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                 EnableSsl = true,
+                DeliveryMethod = SmtpDeliveryMethod.Network,
+                UseDefaultCredentials = false,
             };
 
             string emailBody;

@@ -25,6 +25,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Text.Json.Nodes;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 
 
@@ -36,11 +37,12 @@ namespace WAS_Management.Controllers
     {
         private readonly WAS_ManagementContext _context;
         private readonly IConfiguration _configuration;
-
-        public WorkflowController(WAS_ManagementContext context, IConfiguration configuration)
+        private readonly ILogger<WorkflowController> _logger;
+        public WorkflowController(WAS_ManagementContext context, IConfiguration configuration, ILogger<WorkflowController> logger)
         {
             _context = context;
             _configuration = configuration;
+            _logger = logger;
         }
         [HttpPost("CreateWorkFlow")]
         public async Task<bool> CreateWorkFlow(int initiator_id, string workflowname, string jsonInfo, int interactionid, string type)
@@ -400,14 +402,61 @@ namespace WAS_Management.Controllers
         [HttpPost("CreateResaleNOCWorkflow")]
         private async Task<bool> CreateResaleNOCWorkflow(int initiator_id, string workflowname, string jsonInfo, int interactionid)
         {
-            Workflow workflow = new Workflow();
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                _logger.LogInformation("Starting CreateResaleNOCWorkflow - InitiatorId: {InitiatorId}, WorkflowName: {WorkflowName}, InteractionId: {InteractionId}",
+                           initiator_id, workflowname, interactionid);
+                // Validate input parameters
+                if (initiator_id <= 0)
+                {
+                    _logger.LogWarning("Invalid initiator_id provided: {InitiatorId}", initiator_id);
+                    return false;
+                }
 
-                var userid1_one = await _context.Users.Where(x => x.Username == "Bejoy").Select(x => x.Id).FirstOrDefaultAsync();
-                var userid2_one = await _context.Users.Where(x => x.Username == "Jinu").Select(x => x.Id).FirstOrDefaultAsync();
+                if (interactionid <= 0)
+                {
+                    _logger.LogWarning("Invalid interactionid provided: {InteractionId}", interactionid);
+                    return false;
+                }
+
+                if (string.IsNullOrEmpty(workflowname))
+                {
+                    _logger.LogWarning("WorkflowName is null or empty");
+                    return false;
+                }
+                Workflow workflow = new Workflow();
+                _logger.LogInformation("Looking up required users for Resale NOC workflow");
+
+                var userid1_one = await _context.Users.Where(x => x.Username == "bejoy").Select(x => x.Id).FirstOrDefaultAsync();
+                var userid2_one = await _context.Users.Where(x => x.Username == "jinu").Select(x => x.Id).FirstOrDefaultAsync();
+                if (userid1_one == 0)
+                {
+                    _logger.LogWarning("User 'bejoy' not found in database for Resale NOC workflow");
+                    return false;
+                }
+
+                if (userid2_one == 0)
+                {
+                    _logger.LogWarning("User 'jinu' not found in database for Resale NOC workflow");
+                    return false;
+                }
+                _logger.LogInformation("Successfully found users - bejoy: {UserId1}, jinu: {UserId2}", userid1_one, userid2_one);
+
+                // Lookup workflow type
+                _logger.LogInformation("Looking up workflow type for 'Resale NOC'");
+
                 workflow.InitiatorId = initiator_id;
                 var workflowtypeid = await _context.WorkflowTypes.Where(x => x.Name == "Resale NOC").Select(x => x.Id).FirstOrDefaultAsync();
+                if (workflowtypeid == 0)
+                {
+                    _logger.LogWarning("Workflow type 'Resale NOC' not found in database");
+                    return false;
+                }
+
+                _logger.LogInformation("Found workflow type ID: {WorkflowTypeId}", workflowtypeid);
+                // Create workflow
+                _logger.LogInformation("Creating new Resale NOC workflow");
                 workflow.WorkflowTypeId = workflowtypeid;
                 workflow.Status = "In Progress";
                 workflow.Subject = "Resale NOC";
@@ -417,9 +466,15 @@ namespace WAS_Management.Controllers
                 workflow.InteractionId = interactionid.ToString();
                 // string jsonString = JsonSerializer.Serialize(workflow);
                 workflow.Details = jsonInfo;
+                _logger.LogInformation("Adding workflow to database context");
                 await _context.AddAsync(workflow);
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Successfully created workflow with ID: {WorkflowId}", workflow.Id);
                 #region workflow step 
+                _logger.LogInformation("Creating workflow steps for workflow ID: {WorkflowId}", workflow.Id);
+
+                // Create Step 1: INSPECT PROPERTY
+                _logger.LogInformation("Creating 'INSPECT PROPERTY' workflow step");
                 WorkflowStep step = new WorkflowStep();
                 step.WorkflowId = workflow.Id;
                 step.StepName = "INSPECT PROPERTY";
@@ -431,14 +486,35 @@ namespace WAS_Management.Controllers
                 step.DueOn = DateTime.Now.AddDays(2);
                 await _context.AddAsync(step);
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Successfully created 'INSPECT PROPERTY' step with ID: {StepId}, Due: {DueDate}",
+            step.Id, step.DueOn);
+
+                _logger.LogInformation("Creating 'APPROVE' workflow step");
 
                 WorkflowStep step2 = new WorkflowStep();
                 step2.WorkflowId = workflow.Id;
                 step2.StepName = "APPROVE";
                 step2.StepDescription = "APPROVE";
                 step2.Type = "Any";
+                // Lookup approval users
+                _logger.LogInformation("Looking up approval users for 'APPROVE' step");
+
                 var userid1 = await _context.Users.Where(x => x.Username == "Abubaker").Select(x => x.Id).FirstOrDefaultAsync();
                 var userid2 = await _context.Users.Where(x => x.Username == "Suhail").Select(x => x.Id).FirstOrDefaultAsync();
+                if (userid1 == 0)
+                {
+                    _logger.LogWarning("User 'Abubaker' not found in database for approval step");
+                    return false;
+                }
+
+                if (userid2 == 0)
+                {
+                    _logger.LogWarning("User 'Suhail' not found in database for approval step");
+                    return false;
+                }
+
+                _logger.LogInformation("Successfully found approval users - Abubaker: {UserId1}, Suhail: {UserId2}", userid1, userid2);
+
                 var data2 = new[]
 {
     new { Id = userid1.ToString(), Status = "Not Approved", Rights = "Edit" },
@@ -452,11 +528,25 @@ namespace WAS_Management.Controllers
                 // step2.DueOn = DateTime.Now.AddDays(4);
                 await _context.AddAsync(step2);
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Successfully created 'APPROVE' step with ID: {StepId}, assigned to {UserCount} users",
+             step2.Id, data2.Length);
+
 
                 #endregion
+                _logger.LogInformation("Creating tasks for workflow steps");
+
+                _logger.LogInformation("Creating task 1 for user {UserId1} (bejoy)", userid1_one);
 
                 var taskid_1 = await CreateTask(workflow.Id, step.Id.ToString(), "Workflow", userid1_one, "Resale NOC", initiator_id);
+                _logger.LogInformation("Successfully created task 1 with ID: {TaskId1}", taskid_1);
+
+                _logger.LogInformation("Creating task 2 for user {UserId2} (jinu)", userid2_one);
+
                 var taskid_2 = await CreateTask(workflow.Id, step.Id.ToString(), "Workflow", userid2_one, "Resale NOC", initiator_id);
+                _logger.LogInformation("Successfully created task 2 with ID: {TaskId2}", taskid_2);
+
+                // Update step assignments with task IDs
+                _logger.LogInformation("Updating step assignments with task IDs");
 
                 var data = new[]
 {
@@ -468,13 +558,21 @@ namespace WAS_Management.Controllers
 
 
                 await _context.SaveChangesAsync();
+                _logger.LogInformation("Successfully updated step assignments with task IDs");
 
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully completed CreateResaleNOCWorkflow in {ElapsedMilliseconds}ms - WorkflowId: {WorkflowId}, InitiatorId: {InitiatorId}, InteractionId: {InteractionId}",
+                    stopwatch.ElapsedMilliseconds, workflow.Id, initiator_id, interactionid);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error occurred in CreateResaleNOCWorkflow after {ElapsedMilliseconds}ms - InitiatorId: {InitiatorId}, WorkflowName: {WorkflowName}, InteractionId: {InteractionId}",
+                    stopwatch.ElapsedMilliseconds, initiator_id, workflowname, interactionid);
+
+                // Don't return false AND throw - choose one
                 return false;
-                throw;
             }
         }
 
@@ -2482,7 +2580,7 @@ namespace WAS_Management.Controllers
         [AllowAnonymous]
         private async Task<int> CreateTask(int WorkflowId, string WorkflowStepId, string type, int assignto, string template, int initiatorid)
         {
-            var user = await _context.Users.FindAsync(initiatorid);
+            var user = await _context.Users.FindAsync(assignto);
             Models.UserTask task = new Models.UserTask();
             task.WorkflowId = WorkflowId;
             task.StepId = Convert.ToInt32(WorkflowStepId);
@@ -2760,20 +2858,34 @@ namespace WAS_Management.Controllers
         {
             return await _context.Users.ToListAsync();
         }
-
+     
 
 
         [HttpGet("SendPaymentConfirmationEmail")]
         public async System.Threading.Tasks.Task SendPaymentConfirmationEmail(string email, string comment, string? pdfFilePath = null)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                _logger.LogInformation("Starting to send payment confirmation email to {Email}", email);
+
+                // Validate input
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send payment confirmation email: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for payment confirmation email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
                 // Initialize SMTP client with configuration
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
 
                 // Email Subject
@@ -2867,15 +2979,30 @@ namespace WAS_Management.Controllers
                 {
                     var pdfAttachment = new Attachment(pdfFilePath, "application/pdf");
                     mailMessage.Attachments.Add(pdfAttachment);
+                    _logger.LogInformation("PDF attachment added to payment confirmation email: {PdfFilePath}", pdfFilePath);
                 }
-
+                _logger.LogInformation("Sending payment confirmation email to {Email} with subject: {EmailSubject}",
+          email, emailSubject);
+               
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent payment confirmation email to {Email} in {ElapsedMilliseconds}ms",
+                  email, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending payment confirmation email to {Email}. StatusCode: {StatusCode}",
+                    email, smtpEx.StatusCode);
+                throw;
             }
             catch (Exception ex)
             {
-                // Log or handle exceptions
-                Console.WriteLine($"Error sending email: {ex.Message}");
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending payment confirmation email to {Email}: {ErrorMessage}",
+                    email, ex.Message);
                 throw;
             }
         }
@@ -2884,14 +3011,29 @@ namespace WAS_Management.Controllers
         [HttpGet("resalenocother")]
         public async System.Threading.Tasks.Task resalenocother(string email, string salesOpsStaffName, string unitCode, string other, IFormFileCollection? files, string personname)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew(); 
             try
             {
+                _logger.LogInformation("Starting to send resale NOC other rejection email to {Email} for unit {UnitCode}",
+              email, unitCode);
+                // Validate inputs
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send resale NOC other email: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for resale NOC other email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
                 // Initialize SMTP client with configuration
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
 
                 // Email Subject
@@ -2971,6 +3113,7 @@ namespace WAS_Management.Controllers
                 // Attach files if available
                 if (files != null && files.Count > 0)
                 {
+                    _logger.LogInformation("Processing {FileCount} attachments for resale NOC other email", files.Count);
                     foreach (var file in files)
                     {
                         if (file.Length > 0)
@@ -2993,16 +3136,31 @@ namespace WAS_Management.Controllers
                             }
 
                             mailMessage.Attachments.Add(new Attachment(filePath, file.ContentType));
+                            _logger.LogInformation("Added attachment to resale NOC other email: {FileName}", file.FileName);
                         }
                     }
                 }
-
+                _logger.LogInformation("Sending resale NOC other email to {Email} for unit {UnitCode}", email, unitCode);
+                
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent resale NOC other email to {Email} for unit {UnitCode} in {ElapsedMilliseconds}ms",
+                    email, unitCode, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+               stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending resale NOC other email to {Email} for unit {UnitCode}. StatusCode: {StatusCode}",
+                    email, unitCode, smtpEx.StatusCode);
+                throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending email: {ex.Message}");
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending resale NOC other email to {Email} for unit {UnitCode}: {ErrorMessage}",
+                    email, unitCode, ex.Message);
                 throw;
             }
         }
@@ -3012,14 +3170,30 @@ namespace WAS_Management.Controllers
         [HttpGet("rejectresalenoc")]
         public async System.Threading.Tasks.Task rejectresalenoc(string email, string salesOpsStaffName, string unitCode, List<string> nonComplianceIssues, IFormFileCollection? files, string personname)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                _logger.LogInformation("Starting to send resale NOC rejection email to {Email} for unit {UnitCode} with {IssueCount} non-compliance issues",
+            email, unitCode, nonComplianceIssues?.Count ?? 0);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send resale NOC rejection email: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for resale NOC rejection email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
                 // Initialize SMTP client with configuration
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
 
                 // Email Subject
@@ -3102,6 +3276,7 @@ namespace WAS_Management.Controllers
                 // Attach files if available
                 if (files != null && files.Count > 0)
                 {
+                    _logger.LogInformation("Processing {FileCount} attachments for resale NOC rejection email", files.Count);
                     foreach (var file in files)
                     {
                         if (file.Length > 0)
@@ -3124,16 +3299,34 @@ namespace WAS_Management.Controllers
                             }
 
                             mailMessage.Attachments.Add(new Attachment(filePath, file.ContentType));
+                            _logger.LogInformation("Added attachment to resale NOC rejection email: {FileName}", file.FileName);
                         }
                     }
                 }
 
                 // Send the email
+                _logger.LogInformation("Sending resale NOC rejection email to {Email} for unit {UnitCode}", email, unitCode);
+                
+                // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent resale NOC rejection email to {Email} for unit {UnitCode} in {ElapsedMilliseconds}ms",
+                    email, unitCode, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending resale NOC rejection email to {Email} for unit {UnitCode}. StatusCode: {StatusCode}",
+                    email, unitCode, smtpEx.StatusCode);
+                throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending email: {ex.Message}");
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending resale NOC rejection email to {Email} for unit {UnitCode}: {ErrorMessage}",
+                    email, unitCode, ex.Message);
                 throw;
             }
         }
@@ -3141,14 +3334,30 @@ namespace WAS_Management.Controllers
         [HttpGet("approveresalenoc")]
         public async System.Threading.Tasks.Task approveresalenoc(string email, string salesOpsStaffName, string unitCode, List<string> nonComplianceIssues, IFormFileCollection? files, string personname)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                _logger.LogInformation("Starting to send resale NOC approval email to {Email} for unit {UnitCode}",
+             email, unitCode);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send resale NOC approval email: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for resale NOC approval email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
                 // Initialize SMTP client with configuration
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
 
                 // Email Subject
@@ -3227,15 +3436,29 @@ namespace WAS_Management.Controllers
 
                 // Add recipient
                 mailMessage.To.Add(email);
+                _logger.LogInformation("Sending resale NOC approval email to {Email} for unit {UnitCode}", email, unitCode);
 
-
-
+               
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent resale NOC approval email to {Email} for unit {UnitCode} in {ElapsedMilliseconds}ms",
+                    email, unitCode, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending resale NOC approval email to {Email} for unit {UnitCode}. StatusCode: {StatusCode}",
+                    email, unitCode, smtpEx.StatusCode);
+                throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending email: {ex.Message}");
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending resale NOC approval email to {Email} for unit {UnitCode}: {ErrorMessage}",
+                    email, unitCode, ex.Message);
                 throw;
             }
         }
@@ -3244,14 +3467,30 @@ namespace WAS_Management.Controllers
         [HttpGet("rejectesalenoc")]
         public async System.Threading.Tasks.Task rejectesalenoc(string email, string salesOpsStaffName, string unitCode, List<string> nonComplianceIssues, IFormFileCollection? files, string personname)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                _logger.LogInformation("Starting to send resale NOC rejection email (rejectesalenoc) to {Email} for unit {UnitCode} with {IssueCount} non-compliance issues",
+              email, unitCode, nonComplianceIssues?.Count ?? 0);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send resale NOC rejection email: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for resale NOC rejection email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
                 // Initialize SMTP client with configuration
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
 
                 // Email Subject - Updated for rejection
@@ -3330,13 +3569,29 @@ namespace WAS_Management.Controllers
 
                 // Add recipient
                 mailMessage.To.Add(email);
+                _logger.LogInformation("Sending resale NOC rejection email (rejectesalenoc) to {Email} for unit {UnitCode}", email, unitCode);
 
+               
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent resale NOC rejection email (rejectesalenoc) to {Email} for unit {UnitCode} in {ElapsedMilliseconds}ms",
+                    email, unitCode, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending resale NOC rejection email (rejectesalenoc) to {Email} for unit {UnitCode}. StatusCode: {StatusCode}",
+                    email, unitCode, smtpEx.StatusCode);
+                throw;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending email: {ex.Message}");
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending resale NOC rejection email (rejectesalenoc) to {Email} for unit {UnitCode}: {ErrorMessage}",
+                    email, unitCode, ex.Message);
                 throw;
             }
         }
@@ -3346,14 +3601,30 @@ namespace WAS_Management.Controllers
         [HttpGet("SendInvoiceAndReceiptEmail")]
         public async System.Threading.Tasks.Task SendInvoiceAndReceiptEmail(string email, IFormFileCollection? files)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                _logger.LogInformation("Starting to send invoice and receipt email to {Email} with {FileCount} attachments",
+             email, files?.Count ?? 0);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send invoice and receipt email: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for invoice and receipt email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
                 // Initialize SMTP client with configuration
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
 
                 // Email Subject
@@ -3447,6 +3718,7 @@ namespace WAS_Management.Controllers
                 // Attach files if available
                 if (files != null && files.Count > 0)
                 {
+                    _logger.LogInformation("Processing {FileCount} attachments for invoice and receipt email", files.Count);
                     foreach (var file in files)
                     {
                         if (file.Length > 0)
@@ -3479,17 +3751,34 @@ namespace WAS_Management.Controllers
 
                             // Attach the file to the email with a valid MIME type
                             mailMessage.Attachments.Add(new Attachment(filePath, mimeType));
+                            _logger.LogInformation("Added attachment to invoice and receipt email: {FileName}", originalFileName);
                         }
                     }
                 }
 
                 // Send the email
+                _logger.LogInformation("Sending invoice and receipt email to {Email}", email);
+
+                // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent invoice and receipt email to {Email} in {ElapsedMilliseconds}ms",
+                    email, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending invoice and receipt email to {Email}. StatusCode: {StatusCode}",
+                    email, smtpEx.StatusCode);
+                throw;
             }
             catch (Exception ex)
             {
-                // Log or handle exceptions as needed
-                Console.WriteLine($"Error sending email: {ex.Message}");
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending invoice and receipt email to {Email}: {ErrorMessage}",
+                    email, ex.Message);
                 throw;
             }
         }
@@ -3498,14 +3787,35 @@ namespace WAS_Management.Controllers
         [HttpGet("SendPaymentEmailToCustomer")]
         public async System.Threading.Tasks.Task SendPaymentEmailToCustomer(string customerName, string modificationFee, string customerEmail)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                _logger.LogInformation("Starting to send payment email to customer {CustomerName} at {CustomerEmail} for fee: AED {ModificationFee}",
+             customerName, customerEmail, modificationFee);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(customerEmail))
+                {
+                    _logger.LogWarning("Cannot send payment email to customer: Email address is empty");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(customerName))
+                {
+                    _logger.LogWarning("Customer name is empty for payment email to {CustomerEmail}", customerEmail);
+                }
+
+                _logger.LogInformation("Configuring SMTP client for customer payment email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
                 // Initialize SMTP client with configuration
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
 
                 // Email Subject
@@ -3626,14 +3936,29 @@ namespace WAS_Management.Controllers
 
                 // Add recipient
                 mailMessage.To.Add(customerEmail);
+                _logger.LogInformation("Sending payment email to customer {CustomerName} at {CustomerEmail}", customerName, customerEmail);
 
+               
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent payment email to customer {CustomerName} at {CustomerEmail} in {ElapsedMilliseconds}ms",
+                    customerName, customerEmail, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending payment email to customer {CustomerName} at {CustomerEmail}. StatusCode: {StatusCode}",
+                    customerName, customerEmail, smtpEx.StatusCode);
+                throw;
             }
             catch (Exception ex)
             {
-                // Log or handle exceptions as needed
-                Console.WriteLine($"Error sending email: {ex.Message}");
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending payment email to customer {CustomerName} at {CustomerEmail}: {ErrorMessage}",
+                    customerName, customerEmail, ex.Message);
                 throw;
             }
         }
@@ -3643,14 +3968,30 @@ namespace WAS_Management.Controllers
         [HttpGet("SendPaymentNotificationToContractor")]
         public async System.Threading.Tasks.Task SendPaymentNotificationToContractor(string customerName, string amountPaid, string requestno, string customerEmail)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                _logger.LogInformation("Starting to send payment notification to contractor {CustomerName} at {CustomerEmail} for request {RequestNo} with amount: AED {AmountPaid}",
+            customerName, customerEmail, requestno, amountPaid);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(customerEmail))
+                {
+                    _logger.LogWarning("Cannot send payment notification to contractor: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for contractor payment notification - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
                 // Initialize SMTP client with configuration
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
 
                 // Email Subject
@@ -3699,14 +4040,30 @@ namespace WAS_Management.Controllers
 
                 // Add recipient
                 mailMessage.To.Add(customerEmail);
+                _logger.LogInformation("Sending payment notification to contractor {CustomerName} at {CustomerEmail} for request {RequestNo}",
+            customerName, customerEmail, requestno);
 
+                
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent payment notification to contractor {CustomerName} at {CustomerEmail} for request {RequestNo} in {ElapsedMilliseconds}ms",
+                    customerName, customerEmail, requestno, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending payment notification to contractor {CustomerName} at {CustomerEmail} for request {RequestNo}. StatusCode: {StatusCode}",
+                    customerName, customerEmail, requestno, smtpEx.StatusCode);
+                throw;
             }
             catch (Exception ex)
             {
-                // Log or handle exceptions as needed
-                Console.WriteLine($"Error sending email: {ex.Message}");
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending payment notification to contractor {CustomerName} at {CustomerEmail} for request {RequestNo}: {ErrorMessage}",
+                    customerName, customerEmail, requestno, ex.Message);
                 throw;
             }
         }
@@ -3718,14 +4075,30 @@ namespace WAS_Management.Controllers
         [HttpGet("SendPaymentReceiptToCustomer")]
         public async System.Threading.Tasks.Task SendPaymentReceiptToContractor(string customerName, string amountPaid, string paymentDate, string workflowId, string customerEmail, string paidBy, string paymentMethod,string RenewalDate)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                _logger.LogInformation("Starting to send payment receipt to contractor {CustomerName} at {CustomerEmail} for workflow {WorkflowId} - Amount: AED {AmountPaid}, Valid till: {RenewalDate}",
+          customerName, customerEmail, workflowId, amountPaid, RenewalDate);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(customerEmail))
+                {
+                    _logger.LogWarning("Cannot send payment receipt to contractor: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for contractor payment receipt - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
                 // Initialize SMTP client with configuration
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
 
                 // Email Subject
@@ -3848,14 +4221,30 @@ namespace WAS_Management.Controllers
 
                 // Add recipient
                 mailMessage.To.Add(customerEmail);
+                _logger.LogInformation("Sending payment receipt to contractor {CustomerName} at {CustomerEmail} for workflow {WorkflowId}",
+           customerName, customerEmail, workflowId);
 
+               
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent payment receipt to contractor {CustomerName} at {CustomerEmail} for workflow {WorkflowId} in {ElapsedMilliseconds}ms",
+                    customerName, customerEmail, workflowId, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending payment receipt to contractor {CustomerName} at {CustomerEmail} for workflow {WorkflowId}. StatusCode: {StatusCode}",
+                    customerName, customerEmail, workflowId, smtpEx.StatusCode);
+                throw;
             }
             catch (Exception ex)
             {
-                // Log or handle exceptions as needed
-                Console.WriteLine($"Error sending email: {ex.Message}");
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending payment receipt to contractor {CustomerName} at {CustomerEmail} for workflow {WorkflowId}: {ErrorMessage}",
+                    customerName, customerEmail, workflowId, ex.Message);
                 throw;
             }
         }
@@ -3864,14 +4253,35 @@ namespace WAS_Management.Controllers
         [HttpGet("SendPaymentEmailToContractor")]
         public async System.Threading.Tasks.Task SendPaymentEmailToContractor(string contractorname, string regfee, string contractoremail)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
+                _logger.LogInformation("Starting to send payment email to contractor {ContractorName} at {ContractorEmail} for registration fee: AED {RegFee}",
+            contractorname, contractoremail, regfee);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(contractoremail))
+                {
+                    _logger.LogWarning("Cannot send payment email to contractor: Email address is empty");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(contractorname))
+                {
+                    _logger.LogWarning("Contractor name is empty for payment email to {ContractorEmail}", contractoremail);
+                }
+
+                _logger.LogInformation("Configuring SMTP client for contractor payment email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
                 // Initialize SMTP client with configuration
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
                     Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
                 };
 
                 // Email Subject
@@ -3983,14 +4393,29 @@ namespace WAS_Management.Controllers
 
                 // Add recipient
                 mailMessage.To.Add(contractoremail);
+                _logger.LogInformation("Sending payment email to contractor {ContractorName} at {ContractorEmail}", contractorname, contractoremail);
 
+             
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent payment email to contractor {ContractorName} at {ContractorEmail} in {ElapsedMilliseconds}ms",
+                    contractorname, contractoremail, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending payment email to contractor {ContractorName} at {ContractorEmail}. StatusCode: {StatusCode}",
+                    contractorname, contractoremail, smtpEx.StatusCode);
+                throw;
             }
             catch (Exception ex)
             {
-                // Log or handle exceptions as needed
-                Console.WriteLine($"Error sending email: {ex.Message}");
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending payment email to contractor {ContractorName} at {ContractorEmail}: {ErrorMessage}",
+                    contractorname, contractoremail, ex.Message);
                 throw;
             }
         }
@@ -3999,11 +4424,37 @@ namespace WAS_Management.Controllers
         [HttpGet("SendModificationEmail")]
         private async System.Threading.Tasks.Task SendModificationEmail(User user)
         {
-            var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+
+                _logger.LogInformation("Starting to send modification email (task assignment) to user {UserId} ({UserEmail})",
+               user.Id, user.Email);
+
+                // Validate user input
+                if (user == null)
+                {
+                    _logger.LogWarning("Cannot send modification email: User is null");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(user.Email))
+                {
+                    _logger.LogWarning("Cannot send modification email to user {UserId}: Email address is empty", user.Id);
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for modification email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
             {
                 Port = int.Parse(_configuration["Mail:Port"]),
                 Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
-                EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+
+                    EnableSsl = true,
             };
 
             string emailSubject = "New Task Assigned";
@@ -4097,13 +4548,31 @@ namespace WAS_Management.Controllers
             };
 
             mailMessage.To.Add(user.Email);
+                _logger.LogInformation("Sending modification email to user {UserId} ({UserEmail}) with subject: {EmailSubject}",
+                            user.Id, user.Email, emailSubject);
 
-            await smtpClient.SendMailAsync(mailMessage);
+                await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent modification email to user {UserId} ({UserEmail}) in {ElapsedMilliseconds}ms",
+                    user.Id, user.Email, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending modification email to user {UserId} ({UserEmail}). StatusCode: {StatusCode}",
+                    user?.Id, user?.Email, smtpEx.StatusCode);
+             
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "An error occurred while sending modification email to user {UserId} ({UserEmail})",
+                    user?.Id, user?.Email);
+            
+            }
         }
-
-
-
-
 
 
         [AllowAnonymous]

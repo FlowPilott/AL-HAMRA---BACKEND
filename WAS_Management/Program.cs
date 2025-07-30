@@ -9,13 +9,18 @@ using WAS_Management.Middleware;
 using WAS_Management.ViewModels;
 
 var builder = WebApplication.CreateBuilder(args);
+
 // Configure Serilog
 Log.Logger = new LoggerConfiguration()
-    .ReadFrom.Configuration(builder.Configuration) // Reads from appsettings.json "Serilog" section
+    .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
     .WriteTo.Console()
-    .WriteTo.File("logs/alhamra-.txt", rollingInterval: RollingInterval.Day) // Example file sink
+    .WriteTo.File("logs/alhamra-.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();
+
+// Register Serilog with the host builder
+builder.Host.UseSerilog();
+
 // Add CORS policy
 builder.Services.AddCors();
 
@@ -23,13 +28,11 @@ builder.Services.AddCors();
 builder.Services.AddControllers();
 
 // Add database context
-//builder.Services.AddDbContext<WAS_ManagementContext>(options =>
-//    options.UseMySql(builder.Configuration.GetConnectionString("DefaultConnection"),
-//                     ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("DefaultConnection"))));
 var conn = builder.Configuration.GetConnectionString("DefaultConnection");
-Console.WriteLine($"[DEBUG] DefaultConnection → '{conn}'");
+Log.Information("Application starting with connection string configured: {HasConnection}", !string.IsNullOrEmpty(conn));
 builder.Services.AddDbContext<WAS_ManagementContext>(options =>
     options.UseMySql(conn, ServerVersion.AutoDetect(conn)));
+
 // Add authentication and JWT configuration
 builder.Services.AddAuthentication(options =>
 {
@@ -43,6 +46,7 @@ builder.Services.AddAuthentication(options =>
 
     if (string.IsNullOrWhiteSpace(secret))
     {
+        Log.Fatal("JWT Secret is missing in configuration");
         throw new InvalidOperationException("JWT Secret is missing in configuration.");
     }
 
@@ -71,8 +75,8 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
         Version = "v1",
-        Title = "My API",
-        Description = "An example ASP.NET Core Web API",
+        Title = "WAS Management API",
+        Description = "An ASP.NET Core Web API for WAS Management",
         TermsOfService = new Uri("https://example.com/terms"),
         Contact = new Microsoft.OpenApi.Models.OpenApiContact
         {
@@ -88,53 +92,39 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-
-//var uploadsDirectory = builder.Configuration.GetValue<string>("dllpaths:libwkhtmltox");
-//var context = new CustomAssemblyLoadContext();
-//context.LoadUnmanagedLibrary(uploadsDirectory);
-
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
     options.ForwardedHeaders = ForwardedHeaders.XForwardedProto;
-    // optionally: options.KnownNetworks.Clear(); options.KnownProxies.Clear();
 });
 builder.WebHost.UseUrls("http://0.0.0.0:6000");
-
-
 var app = builder.Build();
 
+// Exception handling middleware (should be first)
 app.UseMiddleware<ExceptionHandlingMiddleware>();
-//// Middleware to handle CORS issues
-//app.Use(async (context, next) =>
-//{
-//    context.Response.Headers.Add("Access-Control-Allow-Origin", "*");
-//    context.Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-//    context.Response.Headers.Add("Access-Control-Allow-Headers", "Content-Type, Authorization");
-//    if (context.Request.Method == "OPTIONS")
-//    {
-//        context.Response.StatusCode = 200;
-//        return;
-//    }
-//    await next();
-//});
+
 
 // Configure the HTTP request pipeline.
 app.UseSwagger();
-
 app.UseSwaggerUI(c =>
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "My API V1");
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "WAS Management API V1");
 });
-
 
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
+    Log.Information("Application running in Development mode");
+}
+else
+{
+    Log.Information("Application running in Production mode");
 }
 
-
 app.UseStaticFiles();
-app.UseForwardedHeaders();        // <<— add here
+
+// Add request logging middleware (add this early in the pipeline)
+app.UseRequestLogging();
+app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 app.UseAuthentication();
@@ -143,8 +133,16 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-
-
-
-
-app.Run();
+try
+{
+    Log.Information("Starting WAS Management web application");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "WAS Management application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
