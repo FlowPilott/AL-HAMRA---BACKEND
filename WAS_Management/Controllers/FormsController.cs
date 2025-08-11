@@ -578,18 +578,49 @@ namespace WAS_Management.Controllers
 
         private async System.Threading.Tasks.Task SendRenewalEmail(Contractor contractor)
         {
-            var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
             {
-                Port = int.Parse(_configuration["Mail:Port"]),
-                Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
-                EnableSsl = true,
-                DeliveryMethod = SmtpDeliveryMethod.Network,
-                UseDefaultCredentials = false,
-            };
+                _logger.LogInformation("Starting to send renewal email to contractor {ContractorId} ({ContractorEmail}) - Company: {CompanyName}",
+                    contractor?.Id, contractor?.Email, contractor?.CompanyName ?? "Unknown");
 
-            string emailSubject = $"Contractor Renewal";
+                // Validate contractor input
+                if (contractor == null)
+                {
+                    _logger.LogWarning("Cannot send renewal email: Contractor is null");
+                    return;
+                }
 
-            string emailBody = $@"
+                if (string.IsNullOrEmpty(contractor.Email))
+                {
+                    _logger.LogWarning("Cannot send renewal email to contractor {ContractorId}: Email address is empty", contractor.Id);
+                    return;
+                }
+
+                //if (string.IsNullOrEmpty(contractor.CompanyName))
+                //{
+                //    _logger.LogWarning("Contractor {ContractorId} ({ContractorEmail}) has no company name set",
+                //        contractor.Id, contractor.Email);
+                //}
+
+                _logger.LogInformation("Configuring SMTP client for renewal email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                };
+
+                string emailSubject = $"Contractor Renewal";
+
+                _logger.LogInformation("Preparing renewal email template for contractor {ContractorId} - Company: {CompanyName}",
+                    contractor.Id, contractor.CompanyName ?? "Unknown");
+
+                string emailBody = $@"
 <html>
 <head>
     <style>
@@ -678,27 +709,84 @@ namespace WAS_Management.Controllers
 </body>
 </html>";
 
-            var mailMessage = new MailMessage
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = emailSubject,
+                    Body = emailBody,
+                    IsBodyHtml = true,
+                };
+
+                mailMessage.To.Add(contractor.Email);
+
+                _logger.LogInformation("Sending renewal email to contractor {ContractorId} ({ContractorEmail}) - Company: {CompanyName} with subject: {EmailSubject}",
+                    contractor.Id, contractor.Email, contractor.CompanyName ?? "Unknown", emailSubject);
+
+                await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent renewal email to contractor {ContractorId} ({ContractorEmail}) - Company: {CompanyName} in {ElapsedMilliseconds}ms",
+                    contractor.Id, contractor.Email, contractor.CompanyName ?? "Unknown", stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
             {
-                From = new MailAddress(_configuration["Mail:From"]),
-                Subject = emailSubject,
-                Body = emailBody,
-                IsBodyHtml = true,
-            };
-
-            mailMessage.To.Add(contractor.Email);
-
-            await smtpClient.SendMailAsync(mailMessage);
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending renewal email to contractor {ContractorId} ({ContractorEmail}) - Company: {CompanyName}. StatusCode: {StatusCode}",
+                    contractor?.Id, contractor?.Email, contractor?.CompanyName ?? "Unknown", smtpEx.StatusCode);
+                throw; // Re-throw to maintain original behavior if needed
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "An error occurred while sending renewal email to contractor {ContractorId} ({ContractorEmail}) - Company: {CompanyName}",
+                    contractor?.Id, contractor?.Email, contractor?.CompanyName ?? "Unknown");
+                throw; // Re-throw to maintain original behavior if needed
+            }
         }
-
-
 
         [HttpGet("SendContractorRegistrationEmail/{email}")]
         [AllowAnonymous]
-        public async Task<bool> SendContractorRegistrationEmail(string email,string paymentoption)
+        public async Task<bool> SendContractorRegistrationEmail(string email, string paymentoption)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            Contractor cr = null;
+
             try
             {
+                _logger.LogInformation("Starting contractor registration email process for email {Email} with payment option: {PaymentOption}",
+                    email ?? "Unknown", paymentoption ?? "Unknown");
+
+                // Validate input parameters
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send contractor registration email: Email is empty");
+                    return false;
+                }
+
+                //if (string.IsNullOrEmpty(paymentoption))
+                //{
+                //    _logger.LogWarning("Cannot send contractor registration email: Payment option is empty for email {Email}", email);
+                //    return false;
+                //}
+
+                _logger.LogInformation("Creating new contractor record for email {Email} with payment option: {PaymentOption}",
+                    email, paymentoption);
+
+                // Create and save contractor record
+                cr = new Contractor();
+                cr.Paymentoption = paymentoption;
+                cr.Email = email;
+
+                _context.Contractors.Add(cr);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully created contractor record with ID {ContractorId} for email {Email}",
+                    cr.Id, email);
+
+                _logger.LogInformation("Configuring SMTP client for contractor registration email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
@@ -708,19 +796,12 @@ namespace WAS_Management.Controllers
                     UseDefaultCredentials = false,
                 };
 
-                Contractor cr = new Contractor();
-                cr.Paymentoption = paymentoption;
-                cr.Email = email;
-                _context.Contractors.Add(cr);
-                await _context.SaveChangesAsync();
+                string emailSubject = $"Contractor Registration";
 
-                string emailBody;
-                string emailSubject;
+                _logger.LogInformation("Preparing contractor registration email template for contractor {ContractorId} ({Email})",
+                    cr.Id, email);
 
-
-                emailSubject = $"Contractor Registration";
-
-                emailBody = $@"
+                string emailBody = $@"
 <html>
 <head>
     <style>
@@ -809,7 +890,6 @@ namespace WAS_Management.Controllers
 </body>
 </html>";
 
-
                 // Create the email message
                 var mailMessage = new MailMessage
                 {
@@ -821,12 +901,30 @@ namespace WAS_Management.Controllers
 
                 mailMessage.To.Add(email);
 
+                _logger.LogInformation("Sending contractor registration email to {Email} for contractor {ContractorId} with subject: {EmailSubject}",
+                    email, cr.Id, emailSubject);
+
                 await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent contractor registration email to {Email} for contractor {ContractorId} in {ElapsedMilliseconds}ms",
+                    email, cr.Id, stopwatch.ElapsedMilliseconds);
 
                 return true;
             }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending contractor registration email to {Email} for contractor {ContractorId}. StatusCode: {StatusCode}",
+                    email ?? "unknown", cr?.Id, smtpEx.StatusCode);
+                return false;
+            }
             catch (Exception ex)
             {
+                stopwatch.Stop();
+                _logger.LogError(ex, "An error occurred while sending contractor registration email to {Email} for contractor {ContractorId}",
+                    email ?? "unknown", cr?.Id);
                 return false;
             }
         }
@@ -834,14 +932,69 @@ namespace WAS_Management.Controllers
 
         [HttpPost("SendServiceRequestEmailAsync/{email}")]
         public async System.Threading.Tasks.Task SendServiceRequestEmailAsync(
-    [FromForm] string email,
-    [FromForm] string customername,
-    [FromForm] string subject,
-    [FromForm] string issue,
-    [FromForm] IFormFile attachmentFile)
+            [FromForm] string email,
+            [FromForm] string customername,
+            [FromForm] string subject,
+            [FromForm] string issue,
+            [FromForm] IFormFile attachmentFile)
         {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            string ticketNo = null;
+
             try
             {
+                _logger.LogInformation("Starting to send service request email from customer {CustomerName} ({CustomerEmail}) with subject: {Subject}",
+                    customername ?? "Unknown", email ?? "Unknown", subject ?? "No Subject");
+
+                // Validate input parameters
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send service request email: Customer email is empty");
+                    return;
+                }
+
+                //if (string.IsNullOrEmpty(customername))
+                //{
+                //    _logger.LogWarning("Cannot send service request email: Customer name is empty for email {CustomerEmail}", email);
+                //    return;
+                //}
+
+                //if (string.IsNullOrEmpty(subject))
+                //{
+                //    _logger.LogWarning("Cannot send service request email: Subject is empty for customer {CustomerName} ({CustomerEmail})",
+                //        customername, email);
+                //    return;
+                //}
+
+                //if (string.IsNullOrEmpty(issue))
+                //{
+                //    _logger.LogWarning("Cannot send service request email: Issue description is empty for customer {CustomerName} ({CustomerEmail})",
+                //        customername, email);
+                //    return;
+                //}
+
+                // Generate ticket number
+                ticketNo = Guid.NewGuid()
+                    .ToString("N")             // 32 hex chars, no hyphens
+                    .Substring(0, 10);         // take first 10
+
+                _logger.LogInformation("Generated ticket number {TicketNo} for service request from {CustomerName} ({CustomerEmail})",
+                    ticketNo, customername, email);
+
+                // Log attachment information
+                if (attachmentFile != null && attachmentFile.Length > 0)
+                {
+                    _logger.LogInformation("Service request includes attachment: {FileName} ({FileSize} bytes, {ContentType}) for ticket {TicketNo}",
+                        attachmentFile.FileName ?? "unnamed", attachmentFile.Length, attachmentFile.ContentType ?? "unknown", ticketNo);
+                }
+                else
+                {
+                    _logger.LogInformation("Service request has no attachment for ticket {TicketNo}", ticketNo);
+                }
+
+                _logger.LogInformation("Configuring SMTP client for service request email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
@@ -850,9 +1003,7 @@ namespace WAS_Management.Controllers
                     DeliveryMethod = SmtpDeliveryMethod.Network,
                     UseDefaultCredentials = false,
                 };
-                string TicketNo = Guid.NewGuid()
-                       .ToString("N")             // 32 hex chars, no hyphens
-                       .Substring(0, 10);         // take first 10
+
                 string emailBody = $@"
 <html>
 <head>
@@ -872,7 +1023,7 @@ namespace WAS_Management.Controllers
             <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Logo'>
         </div>
         <div class='content'>
-            <p>Ticket No: {TicketNo}</p>
+            <p>Ticket No: {ticketNo}</p>
             <p>Issue Reported By {customername},</p>
             <p>{issue}</p>
         </div>
@@ -888,30 +1039,65 @@ namespace WAS_Management.Controllers
                     IsBodyHtml = true,
                 };
 
+                // Add recipients
                 mailMessage.To.Add("muhammadhassannaeem@gmail.com");
                 mailMessage.To.Add("connect@flowpilot.ae");
 
+                _logger.LogInformation("Service request email recipients configured for ticket {TicketNo}: {Recipients}",
+                    ticketNo, string.Join(", ", mailMessage.To.Select(t => t.Address)));
+
+                // Handle attachment if present
                 if (attachmentFile != null && attachmentFile.Length > 0)
                 {
-                    var memoryStream = new MemoryStream();
-                    await attachmentFile.CopyToAsync(memoryStream);
-                    memoryStream.Position = 0;
+                    try
+                    {
+                        _logger.LogInformation("Processing attachment for ticket {TicketNo}: {FileName} ({FileSize} bytes)",
+                            ticketNo, attachmentFile.FileName ?? "unnamed", attachmentFile.Length);
 
-                    var fileName = string.IsNullOrWhiteSpace(attachmentFile.FileName) ? "attachment" : attachmentFile.FileName;
-                    var contentType = string.IsNullOrWhiteSpace(attachmentFile.ContentType) ? "application/octet-stream" : attachmentFile.ContentType;
+                        var memoryStream = new MemoryStream();
+                        await attachmentFile.CopyToAsync(memoryStream);
+                        memoryStream.Position = 0;
 
-                    var attachment = new Attachment(memoryStream, fileName, contentType);
-                    mailMessage.Attachments.Add(attachment);
+                        var fileName = string.IsNullOrWhiteSpace(attachmentFile.FileName) ? "attachment" : attachmentFile.FileName;
+                        var contentType = string.IsNullOrWhiteSpace(attachmentFile.ContentType) ? "application/octet-stream" : attachmentFile.ContentType;
+
+                        var attachment = new Attachment(memoryStream, fileName, contentType);
+                        mailMessage.Attachments.Add(attachment);
+
+                        _logger.LogInformation("Successfully attached file {FileName} to service request email for ticket {TicketNo}",
+                            fileName, ticketNo);
+                    }
+                    catch (Exception attachmentEx)
+                    {
+                        _logger.LogError(attachmentEx, "Failed to process attachment for ticket {TicketNo}: {FileName}",
+                            ticketNo, attachmentFile.FileName ?? "unnamed");
+                        // Continue without attachment rather than failing the entire email
+                    }
                 }
 
-
+                _logger.LogInformation("Sending service request email for ticket {TicketNo} from {CustomerName} ({CustomerEmail}) with subject: {Subject}",
+                    ticketNo, customername, email, subject);
 
                 await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent service request email for ticket {TicketNo} from {CustomerName} ({CustomerEmail}) in {ElapsedMilliseconds}ms",
+                    ticketNo, customername, email, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending service request email for ticket {TicketNo} from {CustomerName} ({CustomerEmail}). StatusCode: {StatusCode}",
+                    ticketNo ?? "unknown", customername ?? "unknown", email ?? "unknown", smtpEx.StatusCode);
+                throw; // Re-throw to maintain original behavior
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Email Error: {ex.Message}");
-                throw; // Optionally rethrow or handle gracefully
+                stopwatch.Stop();
+                _logger.LogError(ex, "An error occurred while sending service request email for ticket {TicketNo} from {CustomerName} ({CustomerEmail})",
+                    ticketNo ?? "unknown", customername ?? "unknown", email ?? "unknown");
+                throw; // Re-throw to maintain original behavior
             }
         }
 
@@ -919,62 +1105,123 @@ namespace WAS_Management.Controllers
         [HttpGet("SendContractorServiceRequestEmail/{email}")]
         public async System.Threading.Tasks.Task SendContractorServiceRequestEmail(Contractor interaction, string customertoken)
         {
-            var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
             {
-                Port = int.Parse(_configuration["Mail:Port"]),
-                Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
-                EnableSsl = true,
-                DeliveryMethod = SmtpDeliveryMethod.Network,
-                UseDefaultCredentials = false,
-            };
+                _logger.LogInformation("Starting to send contractor service request email to contractor {ContractorId} ({ContractorEmail}) - Company: {CompanyName} with customer token: {CustomerToken}",
+                    interaction?.Id, interaction?.Email, interaction?.CompanyName ?? "Unknown", customertoken ?? "empty");
 
-            string emailSubject = $"Update on Your Service Request - ID: {customertoken}";
+                // Validate contractor input
+                if (interaction == null)
+                {
+                    _logger.LogWarning("Cannot send contractor service request email: Contractor is null");
+                    return;
+                }
 
-            string emailBody = $@"
-    <html>
-    <head>
-        <style>
-            body {{ font-family: Arial, sans-serif; background-color: #ffffff; color: #000000; margin: 0; padding: 20px; }}
-            .container {{ max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #000000; }}
-            .header {{ text-align: center; padding-bottom: 10px; border-bottom: 1px solid #000000; }}
-            .header img {{ max-width: 180px; }}
-            .content {{ padding: 20px; font-size: 16px; color: #000000; line-height: 1.5; }}
-            .footer {{ text-align: center; padding: 10px; font-size: 14px; color: #c70e0e; border-top: 1px solid #000000; margin-top: 20px; }}
-            a {{ color: #000000; text-decoration: none; font-weight: bold; }}
-        </style>
-    </head>
-    <body>
-        <div class='container'>
-            <div class='header'>
-                <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
-            </div>
-            <div class='content'>
-                <p>Dear {interaction.CompanyName},</p>
-                <p>Thank you for reaching out to the Property Management Team at Al Hamra Real Estate Development.</p>
-                <p>We are pleased to confirm that your request (ID: <strong>{customertoken}</strong>) is under process, and our team will provide an update shortly.</p>
-                <p>Kindly quote the reference number in future communications regarding this request.</p>
-                <p>We appreciate your patience and look forward to assisting you.</p>
-                <p>If you have any questions, please contact us at <a href='mailto:propertymanagement@alhamra.ae'>propertymanagement@alhamra.ae</a>.</p>
-            </div>
-            <div class='footer'>
-                <p style='color:#a6272e;'>Best regards,</p>
-                <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
-            </div>
+                if (string.IsNullOrEmpty(interaction.Email))
+                {
+                    _logger.LogWarning("Cannot send contractor service request email to contractor {ContractorId}: Email address is empty", interaction.Id);
+                    return;
+                }
+
+                //if (string.IsNullOrEmpty(customertoken))
+                //{
+                //    _logger.LogWarning("Cannot send contractor service request email to contractor {ContractorId} ({ContractorEmail}): Customer token is empty",
+                //        interaction.Id, interaction.Email);
+                //    return;
+                //}
+
+                //if (string.IsNullOrEmpty(interaction.CompanyName))
+                //{
+                //    _logger.LogWarning("Contractor {ContractorId} ({ContractorEmail}) has no company name set for service request email",
+                //        interaction.Id, interaction.Email);
+                //}
+
+                _logger.LogInformation("Configuring SMTP client for contractor service request email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                };
+
+                string emailSubject = $"Update on Your Service Request - ID: {customertoken}";
+
+                _logger.LogInformation("Preparing contractor service request email template for contractor {ContractorId} - Company: {CompanyName} with token: {CustomerToken}",
+                    interaction.Id, interaction.CompanyName ?? "Unknown", customertoken);
+
+                string emailBody = $@"
+<html>
+<head>
+    <style>
+        body {{ font-family: Arial, sans-serif; background-color: #ffffff; color: #000000; margin: 0; padding: 20px; }}
+        .container {{ max-width: 600px; margin: auto; background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid #000000; }}
+        .header {{ text-align: center; padding-bottom: 10px; border-bottom: 1px solid #000000; }}
+        .header img {{ max-width: 180px; }}
+        .content {{ padding: 20px; font-size: 16px; color: #000000; line-height: 1.5; }}
+        .footer {{ text-align: center; padding: 10px; font-size: 14px; color: #c70e0e; border-top: 1px solid #000000; margin-top: 20px; }}
+        a {{ color: #000000; text-decoration: none; font-weight: bold; }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
         </div>
-    </body>
-    </html>";
+        <div class='content'>
+            <p>Dear {interaction.CompanyName},</p>
+            <p>Thank you for reaching out to the Property Management Team at Al Hamra Real Estate Development.</p>
+            <p>We are pleased to confirm that your request (ID: <strong>{customertoken}</strong>) is under process, and our team will provide an update shortly.</p>
+            <p>Kindly quote the reference number in future communications regarding this request.</p>
+            <p>We appreciate your patience and look forward to assisting you.</p>
+            <p>If you have any questions, please contact us at <a href='mailto:propertymanagement@alhamra.ae'>propertymanagement@alhamra.ae</a>.</p>
+        </div>
+        <div class='footer'>
+            <p style='color:#a6272e;'>Best regards,</p>
+            <p style='color:#a6272e;'><strong>PROPERTY MANAGEMENT</strong><br>AL HAMRA</p>
+        </div>
+    </div>
+</body>
+</html>";
 
-            var mailMessage = new MailMessage
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = emailSubject,
+                    Body = emailBody,
+                    IsBodyHtml = true,
+                };
+
+                mailMessage.To.Add(interaction.Email);
+
+                _logger.LogInformation("Sending contractor service request email to contractor {ContractorId} ({ContractorEmail}) - Company: {CompanyName} with subject: {EmailSubject} and token: {CustomerToken}",
+                    interaction.Id, interaction.Email, interaction.CompanyName ?? "Unknown", emailSubject, customertoken);
+
+                await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent contractor service request email to contractor {ContractorId} ({ContractorEmail}) - Company: {CompanyName} with token: {CustomerToken} in {ElapsedMilliseconds}ms",
+                    interaction.Id, interaction.Email, interaction.CompanyName ?? "Unknown", customertoken, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
             {
-                From = new MailAddress(_configuration["Mail:From"]),
-                Subject = emailSubject,
-                Body = emailBody,
-                IsBodyHtml = true,
-            };
-
-            mailMessage.To.Add(interaction.Email);
-
-            await smtpClient.SendMailAsync(mailMessage);
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending contractor service request email to contractor {ContractorId} ({ContractorEmail}) - Company: {CompanyName} with token: {CustomerToken}. StatusCode: {StatusCode}",
+                    interaction?.Id, interaction?.Email, interaction?.CompanyName ?? "Unknown", customertoken ?? "unknown", smtpEx.StatusCode);
+                throw; // Re-throw to maintain original behavior if needed
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "An error occurred while sending contractor service request email to contractor {ContractorId} ({ContractorEmail}) - Company: {CompanyName} with token: {CustomerToken}",
+                    interaction?.Id, interaction?.Email, interaction?.CompanyName ?? "Unknown", customertoken ?? "unknown");
+                throw; // Re-throw to maintain original behavior if needed
+            }
         }
 
 
@@ -984,7 +1231,28 @@ namespace WAS_Management.Controllers
         [AllowAnonymous]
         private async System.Threading.Tasks.Task SendModificationEmail(Interaction interaction, string customertoken, string emailtype)
         {
-            var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                _logger.LogInformation("Starting to send modification email to interaction {InteractionId} ({InteractionEmail}) with customertoken: {CustomerToken}",
+                    interaction?.Id, interaction?.EmailAddress, customertoken ?? "empty");
+
+                // Validate interaction input
+                if (interaction == null)
+                {
+                    _logger.LogWarning("Cannot send modification email: Interaction is null");
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(interaction.EmailAddress))
+                {
+                    _logger.LogWarning("Cannot send modification email to interaction {InteractionId}: Email address is empty", interaction.Id);
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for modification email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
             {
                 Port = int.Parse(_configuration["Mail:Port"]),
                 Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
@@ -998,7 +1266,8 @@ namespace WAS_Management.Controllers
 
             if (string.IsNullOrEmpty(customertoken))
             {
-                emailSubject = "Complete Your Request for Modification at Al Hamra Village";
+                    _logger.LogInformation("Preparing completion request email template for interaction {InteractionId}", interaction.Id);
+                    emailSubject = "Complete Your Request for Modification at Al Hamra Village";
 
                 emailBody = $@"
         <html>
@@ -1084,7 +1353,9 @@ namespace WAS_Management.Controllers
             }
             else
             {
-                emailSubject = $"Update on Your Service Request - ID: {customertoken}";
+                    _logger.LogInformation("Preparing status update email template for interaction {InteractionId} with customer token {CustomerToken}",
+                     interaction.Id, customertoken);
+                    emailSubject = $"Update on Your Service Request - ID: {customertoken}";
 
                 emailBody = $@"
         <html>
@@ -1166,8 +1437,27 @@ namespace WAS_Management.Controllers
             };
 
             mailMessage.To.Add(interaction.EmailAddress);
-
-            await smtpClient.SendMailAsync(mailMessage);
+                _logger.LogInformation("Sending modification email to interaction {InteractionId} ({InteractionEmail}) with subject: {EmailSubject}",
+           interaction.Id, interaction.EmailAddress, emailSubject);
+               
+                await smtpClient.SendMailAsync(mailMessage);
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent modification email to interaction {InteractionId} ({InteractionEmail}) in {ElapsedMilliseconds}ms",
+                    interaction.Id, interaction.EmailAddress, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending modification email to interaction {InteractionId} ({InteractionEmail}). StatusCode: {StatusCode}",
+                    interaction?.Id, interaction?.EmailAddress, smtpEx.StatusCode);
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "An error occurred while sending modification email to interaction {InteractionId} ({InteractionEmail})",
+                    interaction?.Id, interaction?.EmailAddress);
+            }
         }
 
 
