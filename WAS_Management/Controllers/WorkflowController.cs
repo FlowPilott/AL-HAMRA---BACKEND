@@ -1190,6 +1190,8 @@ namespace WAS_Management.Controllers
                         //    await _context.SaveChangesAsync();
                         //}
 
+
+
                         #region Modifiction Request
                         if (workflowstep.Status == "Approved" && stepAction.ActionType == "Submit" && workflow.Subject == "Interaction Recording Form")
                         {
@@ -1537,7 +1539,7 @@ namespace WAS_Management.Controllers
 
                                 string requestno = GenerateCCFormattedId(intid);
 
-                                await SendPaymentReceiptToContractor(contractor.CompanyName, workflows.Amount.ToString(), DateTime.Now.ToShortDateString(), requestno, contractor.Email, formData["paidBy"].ToString(), formData["paymentMethod"].ToString(),contractor.RenewalDate?.ToShortDateString());
+                                await SendPaymentReceiptToContractor(contractor.CompanyName, workflows.Amount.ToString(), DateTime.Now.ToShortDateString(), requestno, contractor.Email, formData["paidBy"].ToString(), formData["paymentMethod"].ToString(), contractor.RenewalDate?.ToShortDateString());
                             }
 
 
@@ -1681,61 +1683,54 @@ namespace WAS_Management.Controllers
                             }
                             else
                             {
-                                int resalenocid = Convert.ToInt32(workflow.InteractionId);
+                                // Handle Resale NOC rejection
+                                await HandleResaleNOCRejection(workflow, workflowstep, stepAction, approverid, files);
 
-                                // Step 1: Retrieve Resale NOC by ID
-                                var resalenoc = await _context.Resalenocs.FirstOrDefaultAsync(i => i.Id == resalenocid);
-                                if (resalenoc == null)
+                                var Datas = new
                                 {
-                                    throw new Exception($"Resalenoc with ID {resalenocid} not found.");
-                                }
-
-                                // Step 2: Get current approver and initiator users
-                                var currentStepUser = await _context.Users.FirstOrDefaultAsync(x => x.Id == approverid);
-                                if (currentStepUser == null)
-                                {
-                                    throw new Exception($"Approver with ID {approverid} not found.");
-                                }
-
-                                if (string.IsNullOrEmpty(resalenoc.Intiatorname))
-                                {
-                                    throw new Exception("Resalenoc.Intiatorname is null or empty.");
-                                }
-
-                                var initiatorUser = await _context.Users.FirstOrDefaultAsync(x => x.Username == resalenoc.Intiatorname);
-                                if (initiatorUser == null)
-                                {
-                                    throw new Exception($"Initiator user with username '{resalenoc.Intiatorname}' not found.");
-                                }
-
-                                // Step 3: Send rejection email
-                               await  rejectresalenoc(
-                                    initiatorUser.Email,
-                                    "Sales Team",
-                                    resalenoc.Unitno,
-                                    stepAction.Checkboxes,
-                                    files,
-                                    currentStepUser.Username
-                                );
-
-                                // Step 4: Reject all tasks
-                                var taskList = await _context.UserTasks.Where(x => x.WorkflowId == workflows.Id).ToListAsync();
-                                foreach (var task in taskList)
-                                {
-                                    task.Status = "Rejected";
-                                }
-
-                                // Step 5: Reject workflow and save
-                                workflows.Status = "Rejected";
-                                //await rejectesalenoc("connect@flowpilot.ae", "Sales Team", resalenoc.Unitno, stepAction.Checkboxes, files, currentStepUser.Username);
-
-                                await _context.SaveChangesAsync();
-
+                                    Result = "Resale NOC rejection handled successfully",
+                                    ErrorCode = "200",
+                                    ErrorMessage = "",
+                                    Data = true,
+                                };
+                                return new JsonResult(Datas);
                             }
 
                         }
                         #endregion
-                         
+
+                        #region Contractor Registration Rejection
+                        if (approvalstatus == "reject" && stepAction.ActionType == "Submit" && (upperCaseSubject == "CONTRACTOR REGISTRATION" || upperCaseSubject == "CONTRACTOR RENEWAL"))
+                        {
+                            await HandleContractorRegistrationRejection(workflow, workflowstep, stepAction, approverid, files);
+
+                            var Datas = new
+                            {
+                                Result = "Contractor registration rejection handled successfully",
+                                ErrorCode = "200",
+                                ErrorMessage = "",
+                                Data = true,
+                            };
+                            return new JsonResult(Datas);
+                        }
+                        #endregion
+
+                        #region Modification Request Rejection
+                        if (approvalstatus == "reject" && stepAction.ActionType == "Submit" && upperCaseSubject == "INTERACTION RECORDING FORM")
+                        {
+                            await HandleModificationRequestRejection(workflow, workflowstep, stepAction, approverid, files);
+
+                            var Datas = new
+                            {
+                                Result = "Modification request rejection handled successfully",
+                                ErrorCode = "200",
+                                ErrorMessage = "",
+                                Data = true,
+                            };
+                            return new JsonResult(Datas);
+                        }
+                        #endregion
+
 
 
                         if (workflowstep.Type == "Any")
@@ -1872,17 +1867,17 @@ namespace WAS_Management.Controllers
 
                 if (workflowstep.Details != null)
                     deserializedData2 = JsonSerializer.Deserialize<List<dynamic>>(workflowstep.Details);
-          
 
-                    // Add the new data to the deserialized lists
-                    deserializedData.Add(new
-                    {
-                        StepId = stepAction.Id,
-                        Id = stepAction.AssignTo.ToString(),
-                        Status = "Not Approved",
-                        Rights = "RFI",
-                        TaskId = taskId
-                    });
+
+                // Add the new data to the deserialized lists
+                deserializedData.Add(new
+                {
+                    StepId = stepAction.Id,
+                    Id = stepAction.AssignTo.ToString(),
+                    Status = "Not Approved",
+                    Rights = "RFI",
+                    TaskId = taskId
+                });
 
                 //deserializedData2.Add(new
                 //{
@@ -2296,7 +2291,7 @@ namespace WAS_Management.Controllers
 
 
         [HttpPost("ReturnWorkFlowStepAction")]
-        public async Task<bool> ReturnWorkFlowStepAction(int WorkflowStepId,int ctaskid, StepAction stepAction)
+        public async Task<bool> ReturnWorkFlowStepAction(int WorkflowStepId, int ctaskid, StepAction stepAction)
         {
             stepAction.StepId = WorkflowStepId;
             stepAction.PerformedOn = DateTime.Now;
@@ -2347,7 +2342,7 @@ namespace WAS_Management.Controllers
                         }
                     }
                     //Previous Step Json
-                    
+
 
 
                     foreach (var item in deserializedData)
@@ -2356,9 +2351,9 @@ namespace WAS_Management.Controllers
                         {
                             var taskid = await CreateTask(workflowstep.WorkflowId.Value, prevstepflow.Id.ToString(), "Return Step", Convert.ToInt32(item["Id"].ToString()), "CONTRACTOR REGISTRATION", workflows.InitiatorId.Value);
                             prevstepflow.Status = "In Progress";
-                            foreach(var i in previousstepjson)
+                            foreach (var i in previousstepjson)
                             {
-                                if(i["Id"]?.ToString() == item["Id"].ToString())
+                                if (i["Id"]?.ToString() == item["Id"].ToString())
                                 {
                                     i["TaskId"] = taskid;
                                 }
@@ -2513,7 +2508,7 @@ namespace WAS_Management.Controllers
                         }
                     }
                     //Previous Step Json
-                   // string p_currentstepjson = JsonConvert.SerializeObject(previousstepjson, Formatting.Indented);
+                    // string p_currentstepjson = JsonConvert.SerializeObject(previousstepjson, Formatting.Indented);
 
 
                     foreach (var item in deserializedData)
@@ -2762,7 +2757,7 @@ namespace WAS_Management.Controllers
                 int completedSteps = wfm
                     .Count(x => x.Status.Equals("Approved", StringComparison.OrdinalIgnoreCase));
 
-                int progressPercentage = wf.Status == "Approved"? 100:((totalSteps > 0)
+                int progressPercentage = wf.Status == "Approved" ? 100 : ((totalSteps > 0)
                     ? (completedSteps * 100) / totalSteps
                     : 0);
 
@@ -2858,7 +2853,7 @@ namespace WAS_Management.Controllers
         {
             return await _context.Users.ToListAsync();
         }
-     
+
 
 
         [HttpGet("SendPaymentConfirmationEmail")]
@@ -2983,7 +2978,7 @@ namespace WAS_Management.Controllers
                 }
                 _logger.LogInformation("Sending payment confirmation email to {Email} with subject: {EmailSubject}",
           email, emailSubject);
-               
+
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
                 stopwatch.Stop();
@@ -3011,7 +3006,7 @@ namespace WAS_Management.Controllers
         [HttpGet("resalenocother")]
         public async System.Threading.Tasks.Task resalenocother(string email, string salesOpsStaffName, string unitCode, string other, IFormFileCollection? files, string personname)
         {
-            var stopwatch = System.Diagnostics.Stopwatch.StartNew(); 
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
             {
                 _logger.LogInformation("Starting to send resale NOC other rejection email to {Email} for unit {UnitCode}",
@@ -3141,7 +3136,7 @@ namespace WAS_Management.Controllers
                     }
                 }
                 _logger.LogInformation("Sending resale NOC other email to {Email} for unit {UnitCode}", email, unitCode);
-                
+
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
                 stopwatch.Stop();
@@ -3150,7 +3145,7 @@ namespace WAS_Management.Controllers
             }
             catch (SmtpException smtpEx)
             {
-               stopwatch.Stop();
+                stopwatch.Stop();
                 _logger.LogError(smtpEx,
                     "SMTP error occurred while sending resale NOC other email to {Email} for unit {UnitCode}. StatusCode: {StatusCode}",
                     email, unitCode, smtpEx.StatusCode);
@@ -3306,7 +3301,7 @@ namespace WAS_Management.Controllers
 
                 // Send the email
                 _logger.LogInformation("Sending resale NOC rejection email to {Email} for unit {UnitCode}", email, unitCode);
-                
+
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
 
@@ -3438,7 +3433,7 @@ namespace WAS_Management.Controllers
                 mailMessage.To.Add(email);
                 _logger.LogInformation("Sending resale NOC approval email to {Email} for unit {UnitCode}", email, unitCode);
 
-               
+
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
 
@@ -3571,7 +3566,7 @@ namespace WAS_Management.Controllers
                 mailMessage.To.Add(email);
                 _logger.LogInformation("Sending resale NOC rejection email (rejectesalenoc) to {Email} for unit {UnitCode}", email, unitCode);
 
-               
+
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
 
@@ -3938,7 +3933,7 @@ namespace WAS_Management.Controllers
                 mailMessage.To.Add(customerEmail);
                 _logger.LogInformation("Sending payment email to customer {CustomerName} at {CustomerEmail}", customerName, customerEmail);
 
-               
+
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
 
@@ -4043,7 +4038,7 @@ namespace WAS_Management.Controllers
                 _logger.LogInformation("Sending payment notification to contractor {CustomerName} at {CustomerEmail} for request {RequestNo}",
             customerName, customerEmail, requestno);
 
-                
+
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
 
@@ -4073,7 +4068,7 @@ namespace WAS_Management.Controllers
 
 
         [HttpGet("SendPaymentReceiptToCustomer")]
-        public async System.Threading.Tasks.Task SendPaymentReceiptToContractor(string customerName, string amountPaid, string paymentDate, string workflowId, string customerEmail, string paidBy, string paymentMethod,string RenewalDate)
+        public async System.Threading.Tasks.Task SendPaymentReceiptToContractor(string customerName, string amountPaid, string paymentDate, string workflowId, string customerEmail, string paidBy, string paymentMethod, string RenewalDate)
         {
             var stopwatch = System.Diagnostics.Stopwatch.StartNew();
             try
@@ -4224,7 +4219,7 @@ namespace WAS_Management.Controllers
                 _logger.LogInformation("Sending payment receipt to contractor {CustomerName} at {CustomerEmail} for workflow {WorkflowId}",
            customerName, customerEmail, workflowId);
 
-               
+
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
 
@@ -4395,7 +4390,7 @@ namespace WAS_Management.Controllers
                 mailMessage.To.Add(contractoremail);
                 _logger.LogInformation("Sending payment email to contractor {ContractorName} at {ContractorEmail}", contractorname, contractoremail);
 
-             
+
                 // Send the email
                 await smtpClient.SendMailAsync(mailMessage);
 
@@ -4448,18 +4443,18 @@ namespace WAS_Management.Controllers
                     _configuration["Mail:Host"], _configuration["Mail:Port"]);
 
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
-            {
-                Port = int.Parse(_configuration["Mail:Port"]),
-                Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
                     DeliveryMethod = SmtpDeliveryMethod.Network,
                     UseDefaultCredentials = false,
 
                     EnableSsl = true,
-            };
+                };
 
-            string emailSubject = "New Task Assigned";
+                string emailSubject = "New Task Assigned";
 
-            string emailBody = $@"
+                string emailBody = $@"
     <html>
     <head>
         <style>
@@ -4539,15 +4534,15 @@ namespace WAS_Management.Controllers
     </body>
     </html>";
 
-            var mailMessage = new MailMessage
-            {
-                From = new MailAddress(_configuration["Mail:From"]),
-                Subject = emailSubject,
-                Body = emailBody,
-                IsBodyHtml = true,
-            };
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = emailSubject,
+                    Body = emailBody,
+                    IsBodyHtml = true,
+                };
 
-            mailMessage.To.Add(user.Email);
+                mailMessage.To.Add(user.Email);
                 _logger.LogInformation("Sending modification email to user {UserId} ({UserEmail}) with subject: {EmailSubject}",
                             user.Id, user.Email, emailSubject);
 
@@ -4563,14 +4558,14 @@ namespace WAS_Management.Controllers
                 _logger.LogError(smtpEx,
                     "SMTP error occurred while sending modification email to user {UserId} ({UserEmail}). StatusCode: {StatusCode}",
                     user?.Id, user?.Email, smtpEx.StatusCode);
-             
+
             }
             catch (Exception ex)
             {
                 stopwatch.Stop();
                 _logger.LogError(ex, "An error occurred while sending modification email to user {UserId} ({UserEmail})",
                     user?.Id, user?.Email);
-            
+
             }
         }
 
@@ -4648,6 +4643,1084 @@ namespace WAS_Management.Controllers
             }
 
             return stepAction;
+        }
+
+        private async System.Threading.Tasks.Task HandleResaleNOCRejection(Workflow workflow, WorkflowStep workflowstep, StepAction stepAction, int? approverid, IFormFileCollection files)
+        {
+            var workflows = await _context.Workflows.FindAsync(workflowstep.WorkflowId);
+
+            // Define step order for Resale NOC
+            var stepOrder = new Dictionary<string, int>
+            {
+                { "INSPECT PROPERTY", 1 },
+                { "APPROVE", 2 }
+            };
+
+            int currentStepOrder = stepOrder.ContainsKey(workflowstep.StepName) ? stepOrder[workflowstep.StepName] : 0;
+
+            if (currentStepOrder == 1) // First step (INSPECT PROPERTY) - end workflow
+            {
+                // End the workflow completely
+                workflows.Status = "Rejected";
+
+                // Reject all tasks
+                var allTasks = await _context.UserTasks.Where(x => x.WorkflowId == workflows.Id).ToListAsync();
+                foreach (var task in allTasks)
+                {
+                    task.Status = "Rejected";
+                }
+
+                // Send rejection email to sales team
+                int resalenocid = Convert.ToInt32(workflow.InteractionId);
+                var resalenoc = await _context.Resalenocs.FirstOrDefaultAsync(i => i.Id == resalenocid);
+                if (resalenoc != null)
+                {
+                    var currentStepUser = await _context.Users.FirstOrDefaultAsync(x => x.Id == approverid);
+                    if (currentStepUser != null)
+                    {
+                        var initiatorUser = await _context.Users.FirstOrDefaultAsync(x => x.Username == resalenoc.Intiatorname);
+                        if (initiatorUser != null)
+                        {
+                            await rejectresalenoc(
+                                initiatorUser.Email,
+                                "Sales Team",
+                                resalenoc.Unitno,
+                                stepAction.Checkboxes,
+                                files,
+                                currentStepUser.Username
+                            );
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            else if (currentStepOrder == 2) // Second step (APPROVE) - go back to step 1 (INSPECT PROPERTY)
+            {
+                // Find step 1 (INSPECT PROPERTY)
+                var step1 = await _context.WorkflowSteps
+                    .FirstOrDefaultAsync(x => x.StepName == "INSPECT PROPERTY" && x.WorkflowId == workflowstep.WorkflowId);
+
+                if (step1 != null)
+                {
+                    // Reset ALL steps to "Not Started" and reset their AssignedTo JSON
+                    var allSteps = await _context.WorkflowSteps
+                        .Where(x => x.WorkflowId == workflowstep.WorkflowId)
+                        .ToListAsync();
+
+                    foreach (var step in allSteps)
+                    {
+                        step.Status = "Not Started";
+
+                        // Reset all assigned users for this step
+                        var stepData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(step.AssignedTo);
+                        foreach (var item in stepData)
+                        {
+                            item["Status"] = "Not Approved";
+                            if (item.ContainsKey("ApprovedBy"))
+                            {
+                                item["ApprovedBy"] = null;
+                            }
+                        }
+
+                        // Save the updated JSON back to the step
+                        string updatedJson = JsonSerializer.Serialize(stepData, new JsonSerializerOptions { WriteIndented = true });
+                        step.AssignedTo = updatedJson;
+                    }
+
+                    // Then activate step 1
+                    step1.Status = "In Progress";
+                    step1.ReceivedOn = DateTime.Now;
+                    step1.DueOn = DateTime.Now.AddDays(2);
+
+                    // First, reset ALL tasks in the workflow to "Not Started"
+                    var allWorkflowTasks = await _context.UserTasks.Where(x => x.WorkflowId == workflowstep.WorkflowId).ToListAsync();
+                    foreach (var task in allWorkflowTasks)
+                    {
+                        task.Status = "Not Started";
+                        task.Isviewed = false;
+                    }
+
+                    // Then reactivate step 1 tasks to "In Progress"
+                    var step1Tasks = await _context.UserTasks.Where(x => x.StepId == step1.Id).ToListAsync();
+                    foreach (var task in step1Tasks)
+                    {
+                        task.Status = "In Progress"; // Reactivate the existing tasks
+                        task.Isviewed = false;
+                    }
+
+                    // Set current step tasks to "Rejected" (they should already be "Not Started" from above, but being explicit)
+                    var currentStepTasks = await _context.UserTasks.Where(x => x.StepId == workflowstep.Id).ToListAsync();
+                    foreach (var task in currentStepTasks)
+                    {
+                        task.Status = "Rejected";
+                    }
+
+                    // Send rejection email for step back to step 1
+                    int resalenocid = Convert.ToInt32(workflow.InteractionId);
+                    var resalenoc = await _context.Resalenocs.FirstOrDefaultAsync(i => i.Id == resalenocid);
+                    if (resalenoc != null)
+                    {
+                        var currentStepUser = await _context.Users.FirstOrDefaultAsync(x => x.Id == approverid);
+                        if (currentStepUser != null)
+                        {
+                            var initiatorUser = await _context.Users.FirstOrDefaultAsync(x => x.Username == resalenoc.Intiatorname);
+                            if (initiatorUser != null)
+                            {
+                                // Use the existing rejection email but with different messaging
+                                await rejectresalenoc(
+                                    initiatorUser.Email,
+                                    "Sales Team",
+                                    resalenoc.Unitno,
+                                    stepAction.Checkboxes,
+                                    files,
+                                    currentStepUser.Username
+                                );
+                            }
+                        }
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
+            }
+            else
+            {
+                // Fallback for unknown steps - use original logic
+                int resalenocid = Convert.ToInt32(workflow.InteractionId);
+
+                var resalenoc = await _context.Resalenocs.FirstOrDefaultAsync(i => i.Id == resalenocid);
+                if (resalenoc == null)
+                {
+                    throw new Exception($"Resalenoc with ID {resalenocid} not found.");
+                }
+
+                var currentStepUser = await _context.Users.FirstOrDefaultAsync(x => x.Id == approverid);
+                if (currentStepUser == null)
+                {
+                    throw new Exception($"Approver with ID {approverid} not found.");
+                }
+
+                if (string.IsNullOrEmpty(resalenoc.Intiatorname))
+                {
+                    throw new Exception("Resalenoc.Intiatorname is null or empty.");
+                }
+
+                var initiatorUser = await _context.Users.FirstOrDefaultAsync(x => x.Username == resalenoc.Intiatorname);
+                if (initiatorUser == null)
+                {
+                    throw new Exception($"Initiator user with username '{resalenoc.Intiatorname}' not found.");
+                }
+
+                await rejectresalenoc(
+                    initiatorUser.Email,
+                    "Sales Team",
+                    resalenoc.Unitno,
+                    stepAction.Checkboxes,
+                    files,
+                    currentStepUser.Username
+                );
+
+                var taskList = await _context.UserTasks.Where(x => x.WorkflowId == workflows.Id).ToListAsync();
+                foreach (var task in taskList)
+                {
+                    task.Status = "Rejected";
+                }
+
+                workflows.Status = "Rejected";
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        private async System.Threading.Tasks.Task HandleContractorRegistrationRejection(Workflow workflow, WorkflowStep workflowstep, StepAction stepAction, int? approverid, IFormFileCollection files)
+        {
+            var workflows = await _context.Workflows.FindAsync(workflowstep.WorkflowId);
+
+            // Define step order for Contractor Registration
+            var stepOrder = new Dictionary<string, int>
+            {
+                { "REVIEW DOCS", 1 },
+                { "APPROVE", 2 },
+                { "UPLOAD INVOICE", 3 },
+                { "FILE CLOSURE", 4 }
+            };
+
+            int currentStepOrder = stepOrder.ContainsKey(workflowstep.StepName) ? stepOrder[workflowstep.StepName] : 0;
+
+            if (currentStepOrder == 1) // First step - end workflow
+            {
+                // End the workflow completely
+                workflows.Status = "Rejected";
+
+                // Reject all tasks
+                var allTasks = await _context.UserTasks.Where(x => x.WorkflowId == workflows.Id).ToListAsync();
+                foreach (var task in allTasks)
+                {
+                    task.Status = "Rejected";
+                }
+
+                // Send rejection email to contractor
+                int contractorId = Convert.ToInt32(workflow.InteractionId);
+                var contractor = await _context.Contractors.FirstOrDefaultAsync(x => x.Id == contractorId);
+                if (contractor != null)
+                {
+                    var currentStepUser = await _context.Users.FirstOrDefaultAsync(x => x.Id == approverid);
+                    // Send contractor step 1 rejection email (workflow termination)
+                    await SendContractorStep1RejectionEmail(contractor.Email, contractor.CompanyName, stepAction.Comments, currentStepUser?.Username);
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            else // Not first step - go back to step 1
+            {
+                // Find step 1 (REVIEW DOCS)
+                var step1 = await _context.WorkflowSteps
+                    .FirstOrDefaultAsync(x => x.StepName == "REVIEW DOCS" && x.WorkflowId == workflowstep.WorkflowId);
+
+                if (step1 != null)
+                {
+                    // Reset ALL steps to "Not Started" and reset their AssignedTo JSON
+                    var allSteps = await _context.WorkflowSteps
+                        .Where(x => x.WorkflowId == workflowstep.WorkflowId)
+                        .ToListAsync();
+
+                    foreach (var step in allSteps)
+                    {
+                        step.Status = "Not Started";
+
+                        // Reset all assigned users for this step
+                        var stepData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(step.AssignedTo);
+                        foreach (var item in stepData)
+                        {
+                            item["Status"] = "Not Approved";
+                            if (item.ContainsKey("ApprovedBy"))
+                            {
+                                item["ApprovedBy"] = null;
+                            }
+                        }
+
+                        // Save the updated JSON back to the step
+                        string updatedJson = JsonSerializer.Serialize(stepData, new JsonSerializerOptions { WriteIndented = true });
+                        step.AssignedTo = updatedJson;
+                    }
+
+                    // Then activate step 1
+                    step1.Status = "In Progress";
+                    step1.ReceivedOn = DateTime.Now;
+                    step1.DueOn = DateTime.Now.AddDays(2);
+
+                    // First, reset ALL tasks in the workflow to "Not Started"
+                    var allWorkflowTasks = await _context.UserTasks.Where(x => x.WorkflowId == workflowstep.WorkflowId).ToListAsync();
+                    foreach (var task in allWorkflowTasks)
+                    {
+                        task.Status = "Not Started";
+                        task.Isviewed = false;
+                    }
+
+                    // Then reactivate step 1 tasks to "In Progress"
+                    var step1Tasks = await _context.UserTasks.Where(x => x.StepId == step1.Id).ToListAsync();
+                    foreach (var task in step1Tasks)
+                    {
+                        task.Status = "In Progress"; // Reactivate the existing tasks
+                        task.Isviewed = false;
+                    }
+
+                    // Set current step tasks to "Rejected" (they should already be "Not Started" from above, but being explicit)
+                    var currentStepTasks = await _context.UserTasks.Where(x => x.StepId == workflowstep.Id).ToListAsync();
+                    foreach (var task in currentStepTasks)
+                    {
+                        task.Status = "Rejected";
+                    }
+
+                    // Send contractor step back rejection email
+                    int contractorId = Convert.ToInt32(workflow.InteractionId);
+                    var contractor = await _context.Contractors.FirstOrDefaultAsync(x => x.Id == contractorId);
+                    if (contractor != null)
+                    {
+                        var currentStepUser = await _context.Users.FirstOrDefaultAsync(x => x.Id == approverid);
+                        await SendContractorStepBackRejectionEmail(contractor.Email, contractor.CompanyName, stepAction.Comments,
+                            currentStepUser?.Username, workflowstep.StepName, "REVIEW DOCS");
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
+            }
+        }
+
+        private async System.Threading.Tasks.Task HandleModificationRequestRejection(Workflow workflow, WorkflowStep workflowstep, StepAction stepAction, int? approverid, IFormFileCollection files)
+        {
+            var workflows = await _context.Workflows.FindAsync(workflowstep.WorkflowId);
+
+            // Define step order for Modification Request (Interaction Recording Form)
+            var stepOrder = new Dictionary<string, int>
+            {
+                { "Review Scope and Site Requirements", 1 },
+                { "Review Scope", 2 },
+                { "Review Scope2", 3 },
+                { "Review Scope and Fees Calculation", 4 },
+                { "Upload the Invoice", 5 },
+                { "Confirm Payment Received", 6 }
+            };
+
+            int currentStepOrder = stepOrder.ContainsKey(workflowstep.StepName) ? stepOrder[workflowstep.StepName] : 0;
+
+            if (currentStepOrder == 1) // First step - end workflow
+            {
+                // End the workflow completely
+                workflows.Status = "Rejected";
+
+                // Reject all tasks
+                var allTasks = await _context.UserTasks.Where(x => x.WorkflowId == workflows.Id).ToListAsync();
+                foreach (var task in allTasks)
+                {
+                    task.Status = "Rejected";
+                }
+
+                // Send rejection email to customer
+                int interactionId = Convert.ToInt32(workflow.InteractionId);
+                var interaction = await _context.Interactions.FirstOrDefaultAsync(x => x.Id == interactionId);
+                if (interaction != null)
+                {
+                    var currentStepUser = await _context.Users.FirstOrDefaultAsync(x => x.Id == approverid);
+                    // Send modification step 1 rejection email (workflow termination)
+                    await SendModificationStep1RejectionEmail(interaction.EmailAddress, interaction.OwnerName, stepAction.Comments, currentStepUser?.Username);
+                }
+
+                await _context.SaveChangesAsync();
+            }
+            else // Not first step - go back to step 1
+            {
+                // Find step 1 (Review Scope and Site Requirements)
+                var step1 = await _context.WorkflowSteps
+                    .FirstOrDefaultAsync(x => x.StepName == "Review Scope and Site Requirements" && x.WorkflowId == workflowstep.WorkflowId);
+
+                if (step1 != null)
+                {
+                    // Reset ALL steps to "Not Started" and reset their AssignedTo JSON
+                    var allSteps = await _context.WorkflowSteps
+                        .Where(x => x.WorkflowId == workflowstep.WorkflowId)
+                        .ToListAsync();
+
+                    foreach (var step in allSteps)
+                    {
+                        step.Status = "Not Started";
+
+                        // Reset all assigned users for this step
+                        var stepData = JsonSerializer.Deserialize<List<Dictionary<string, object>>>(step.AssignedTo);
+                        foreach (var item in stepData)
+                        {
+                            item["Status"] = "Not Approved";
+                            if (item.ContainsKey("ApprovedBy"))
+                            {
+                                item["ApprovedBy"] = null;
+                            }
+                        }
+
+                        // Save the updated JSON back to the step
+                        string updatedJson = JsonSerializer.Serialize(stepData, new JsonSerializerOptions { WriteIndented = true });
+                        step.AssignedTo = updatedJson;
+                    }
+
+                    // Then activate step 1
+                    step1.Status = "In Progress";
+                    step1.ReceivedOn = DateTime.Now;
+                    step1.DueOn = DateTime.Now.AddDays(2);
+
+                    // First, reset ALL tasks in the workflow to "Not Started"
+                    var allWorkflowTasks = await _context.UserTasks.Where(x => x.WorkflowId == workflowstep.WorkflowId).ToListAsync();
+                    foreach (var task in allWorkflowTasks)
+                    {
+                        task.Status = "Not Started";
+                        task.Isviewed = false;
+                    }
+
+                    // Then reactivate step 1 tasks to "In Progress"
+                    var step1Tasks = await _context.UserTasks.Where(x => x.StepId == step1.Id).ToListAsync();
+                    foreach (var task in step1Tasks)
+                    {
+                        task.Status = "In Progress"; // Reactivate the existing tasks
+                    }
+
+                    // Set current step tasks to "Rejected" (they should already be "Not Started" from above, but being explicit)
+                    var currentStepTasks = await _context.UserTasks.Where(x => x.StepId == workflowstep.Id).ToListAsync();
+                    foreach (var task in currentStepTasks)
+                    {
+                        task.Status = "Rejected";
+                        task.Isviewed = false;
+                    }
+
+                    // Send modification step back rejection email
+                    int interactionId = Convert.ToInt32(workflow.InteractionId);
+                    var interaction = await _context.Interactions.FirstOrDefaultAsync(x => x.Id == interactionId);
+                    if (interaction != null)
+                    {
+                        var currentStepUser = await _context.Users.FirstOrDefaultAsync(x => x.Id == approverid);
+                        await SendModificationStepBackRejectionEmail(interaction.EmailAddress, interaction.OwnerName, stepAction.Comments,
+                            currentStepUser?.Username, workflowstep.StepName, "Review Scope and Site Requirements");
+                    }
+
+                    await _context.SaveChangesAsync();
+                }
+            }
+        }
+
+        private string GetPreviousContractorStep(string currentStepName)
+        {
+            return currentStepName switch
+            {
+                "APPROVE" => "REVIEW DOCS",
+                "UPLOAD INVOICE" => "APPROVE",
+                "FILE CLOSURE" => "UPLOAD INVOICE",
+                _ => string.Empty
+            };
+        }
+
+        private string GetPreviousModificationStep(string currentStepName)
+        {
+            return currentStepName switch
+            {
+                "Review Scope" => "Review Scope and Site Requirements",
+                "Review Scope2" => "Review Scope",
+                "Review Scope and Fees Calculation" => "Review Scope2",
+                "Upload the Invoice" => "Review Scope and Fees Calculation",
+                "Confirm Payment Received" => "Upload the Invoice",
+                _ => string.Empty
+            };
+        }
+
+        private string GetPreviousResaleNOCStep(string currentStepName)
+        {
+            return currentStepName switch
+            {
+                "APPROVE" => "INSPECT PROPERTY",
+                _ => string.Empty
+            };
+        }
+
+        [HttpGet("SendContractorStep1RejectionEmail")]
+        public async System.Threading.Tasks.Task SendContractorStep1RejectionEmail(string email, string companyName, string rejectionReason, string approverName)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                _logger.LogInformation("Starting to send contractor registration rejection email to {Email} for company {CompanyName}",
+                    email, companyName);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send contractor rejection email: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for contractor rejection email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
+                // Initialize SMTP client with configuration
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                };
+
+                // Email Subject
+                string emailSubject = "Contractor Registration Application - Rejected";
+
+                // Email Body
+                string emailBody = $@"
+<html>
+<head>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+            margin: 0;
+            padding: 20px;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #000000;
+        }}
+        .header {{
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #000000;
+        }}
+        .content {{
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            border-top: 1px solid #000000;
+            margin-top: 20px;
+        }}
+        .rejection-notice {{
+            background-color: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin: 15px 0;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
+            <h2>Contractor Registration Application - Rejected</h2>
+        </div>
+        <div class='content'>
+            <p>Dear {companyName},</p>
+            <div class='rejection-notice'>
+                <p><strong>APPLICATION STATUS: REJECTED</strong></p>
+                <p>Your contractor registration application has been <strong>permanently rejected</strong> during the initial review process.</p>
+            </div>
+            {(!string.IsNullOrEmpty(rejectionReason) ? $"<p><strong>Reason for Rejection:</strong><br/>{rejectionReason}</p>" : "")}
+            <p><strong>Next Steps:</strong></p>
+            <ul>
+                <li>Review our contractor registration requirements thoroughly</li>
+                <li>Address all identified issues</li>
+                <li>Submit a completely new application when ready</li>
+            </ul>
+            <p><strong>Important:</strong> This rejection terminates your current application. You will need to start the registration process from the beginning if you wish to reapply.</p>
+            <p>If you have any questions or need clarification regarding this decision, please feel free to contact us at 
+            <a href='mailto:propertymanagement@alhamra.ae' style='color: black;'>propertymanagement@alhamra.ae</a> or call us at 8002542672.</p>
+            <p>Thank you for your interest in working with Al Hamra.</p>
+        </div>
+        <div class='footer'>
+            <p style='color:#a6272e;'>Best Regards,</p>
+            <p style='color:#a6272e;'><strong>{(!string.IsNullOrEmpty(approverName) ? approverName : "PROPERTY MANAGEMENT")}</strong><br>AL HAMRA</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+                // Create the email message
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = emailSubject,
+                    Body = emailBody,
+                    IsBodyHtml = true,
+                };
+
+                // Add recipient
+                mailMessage.To.Add(email);
+
+                _logger.LogInformation("Sending contractor rejection email to {Email} for company {CompanyName}", email, companyName);
+
+                // Send the email
+                await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent contractor rejection email to {Email} for company {CompanyName} in {ElapsedMilliseconds}ms",
+                    email, companyName, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending contractor rejection email to {Email} for company {CompanyName}. StatusCode: {StatusCode}",
+                    email, companyName, smtpEx.StatusCode);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending contractor rejection email to {Email} for company {CompanyName}: {ErrorMessage}",
+                    email, companyName, ex.Message);
+                throw;
+            }
+        }
+
+        [HttpGet("SendContractorStepBackRejectionEmail")]
+        public async System.Threading.Tasks.Task SendContractorStepBackRejectionEmail(string email, string companyName, string rejectionReason, string approverName, string currentStep, string previousStep)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                _logger.LogInformation("Starting to send contractor step back rejection email to {Email} for company {CompanyName} - Step: {CurrentStep} to {PreviousStep}",
+                    email, companyName, currentStep, previousStep);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send contractor step back rejection email: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for contractor step back rejection email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
+                // Initialize SMTP client with configuration
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                };
+
+                // Email Subject
+                string emailSubject = "Contractor Registration - Step Revision Required";
+
+                // Email Body
+                string emailBody = $@"
+<html>
+<head>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+            margin: 0;
+            padding: 20px;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #000000;
+        }}
+        .header {{
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #000000;
+        }}
+        .content {{
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            border-top: 1px solid #000000;
+            margin-top: 20px;
+        }}
+        .revision-notice {{
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }}
+        .step-info {{
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
+            <h2>Contractor Registration - Step Revision Required</h2>
+        </div>
+        <div class='content'>
+            <p>Dear {companyName},</p>
+            <div class='revision-notice'>
+                <p><strong>APPLICATION STATUS: REVISION REQUIRED</strong></p>
+                <p>Your contractor registration application requires revision at the <strong>{currentStep}</strong> stage.</p>
+            </div>
+            {(!string.IsNullOrEmpty(rejectionReason) ? $"<p><strong>Reason for Revision:</strong><br/>{rejectionReason}</p>" : "")}
+            <div class='step-info'>
+                <p><strong>Process Update:</strong></p>
+                <p>• <strong>Current Step:</strong> {currentStep} (Requires Revision)</p>
+                <p>• <strong>Returned to:</strong> Step 1 - Document Review</p>
+                <p>• <strong>Status:</strong> Your application remains active and will be re-reviewed from the beginning</p>
+            </div>
+            <p><strong>Next Steps:</strong></p>
+            <ul>
+                <li>Review the feedback provided above</li>
+                <li>Make the necessary corrections to your application</li>
+                <li>The application will restart from Step 1 and proceed through all steps once corrections are verified</li>
+            </ul>
+            <p><strong>Good News:</strong> Your application is still active! This is a revision request, not a rejection. Once the identified issues are addressed, your application will continue processing.</p>
+            <p>If you have any questions or need clarification regarding the required revisions, please feel free to contact us at 
+            <a href='mailto:propertymanagement@alhamra.ae' style='color: black;'>propertymanagement@alhamra.ae</a> or call us at 8002542672.</p>
+            <p>Thank you for your cooperation in ensuring all requirements are met.</p>
+        </div>
+        <div class='footer'>
+            <p style='color:#a6272e;'>Best Regards,</p>
+            <p style='color:#a6272e;'><strong>{(!string.IsNullOrEmpty(approverName) ? approverName : "PROPERTY MANAGEMENT")}</strong><br>AL HAMRA</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+                // Create the email message
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = emailSubject,
+                    Body = emailBody,
+                    IsBodyHtml = true,
+                };
+
+                // Add recipient
+                mailMessage.To.Add(email);
+
+                _logger.LogInformation("Sending contractor step back rejection email to {Email} for company {CompanyName}", email, companyName);
+
+                // Send the email
+                await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent contractor step back rejection email to {Email} for company {CompanyName} in {ElapsedMilliseconds}ms",
+                    email, companyName, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending contractor step back rejection email to {Email} for company {CompanyName}. StatusCode: {StatusCode}",
+                    email, companyName, smtpEx.StatusCode);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending contractor step back rejection email to {Email} for company {CompanyName}: {ErrorMessage}",
+                    email, companyName, ex.Message);
+                throw;
+            }
+        }
+
+        [HttpGet("SendModificationStep1RejectionEmail")]
+        public async System.Threading.Tasks.Task SendModificationStep1RejectionEmail(string email, string customerName, string rejectionReason, string approverName)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                _logger.LogInformation("Starting to send modification request rejection email to {Email} for customer {CustomerName}",
+                    email, customerName);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send modification rejection email: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for modification rejection email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
+                // Initialize SMTP client with configuration
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                };
+
+                // Email Subject
+                string emailSubject = "Modification Request - Rejected";
+
+                // Email Body
+                string emailBody = $@"
+<html>
+<head>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+            margin: 0;
+            padding: 20px;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #000000;
+        }}
+        .header {{
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #000000;
+        }}
+        .content {{
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            border-top: 1px solid #000000;
+            margin-top: 20px;
+        }}
+        .rejection-notice {{
+            background-color: #ffebee;
+            border-left: 4px solid #f44336;
+            padding: 15px;
+            margin: 15px 0;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
+            <h2>Modification Request - Rejected</h2>
+        </div>
+        <div class='content'>
+            <p>Dear {customerName},</p>
+            <div class='rejection-notice'>
+                <p><strong>REQUEST STATUS: REJECTED</strong></p>
+                <p>Your modification request has been <strong>permanently rejected</strong> during the initial review process.</p>
+            </div>
+            {(!string.IsNullOrEmpty(rejectionReason) ? $"<p><strong>Reason for Rejection:</strong><br/>{rejectionReason}</p>" : "")}
+            <p><strong>Next Steps:</strong></p>
+            <ul>
+                <li>Review our modification guidelines thoroughly</li>
+                <li>Ensure compliance with all requirements listed below</li>
+                <li>Submit a completely new modification request when ready</li>
+            </ul>
+            <p><strong>Compliance Requirements:</strong></p>
+            <ul>
+                <li>Al Hamra community guidelines and regulations</li>
+                <li>Dubai Municipality building codes</li>
+                <li>Safety and structural requirements</li>
+                <li>Environmental and aesthetic standards</li>
+            </ul>
+            <p><strong>Important:</strong> This rejection terminates your current modification request. You will need to start the modification approval process from the beginning if you wish to resubmit.</p>
+            <p>If you have any questions or need clarification regarding this decision, please feel free to contact us at 
+            <a href='mailto:propertymanagement@alhamra.ae' style='color: black;'>propertymanagement@alhamra.ae</a> or call us at 8002542672.</p>
+            <p>Thank you for your understanding.</p>
+        </div>
+        <div class='footer'>
+            <p style='color:#a6272e;'>Best Regards,</p>
+            <p style='color:#a6272e;'><strong>{(!string.IsNullOrEmpty(approverName) ? approverName : "PROPERTY MANAGEMENT")}</strong><br>AL HAMRA</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+                // Create the email message
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = emailSubject,
+                    Body = emailBody,
+                    IsBodyHtml = true,
+                };
+
+                // Add recipient
+                mailMessage.To.Add(email);
+
+                _logger.LogInformation("Sending modification rejection email to {Email} for customer {CustomerName}", email, customerName);
+
+                // Send the email
+                await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent modification rejection email to {Email} for customer {CustomerName} in {ElapsedMilliseconds}ms",
+                    email, customerName, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending modification rejection email to {Email} for customer {CustomerName}. StatusCode: {StatusCode}",
+                    email, customerName, smtpEx.StatusCode);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending modification rejection email to {Email} for customer {CustomerName}: {ErrorMessage}",
+                    email, customerName, ex.Message);
+                throw;
+            }
+        }
+
+        [HttpGet("SendModificationStepBackRejectionEmail")]
+        public async System.Threading.Tasks.Task SendModificationStepBackRejectionEmail(string email, string customerName, string rejectionReason, string approverName, string currentStep, string previousStep)
+        {
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+            try
+            {
+                _logger.LogInformation("Starting to send modification step back rejection email to {Email} for customer {CustomerName} - Step: {CurrentStep} to {PreviousStep}",
+                    email, customerName, currentStep, previousStep);
+
+                // Validate inputs
+                if (string.IsNullOrEmpty(email))
+                {
+                    _logger.LogWarning("Cannot send modification step back rejection email: Email address is empty");
+                    return;
+                }
+
+                _logger.LogInformation("Configuring SMTP client for modification step back rejection email - Host: {SmtpHost}, Port: {SmtpPort}",
+                    _configuration["Mail:Host"], _configuration["Mail:Port"]);
+
+                // Initialize SMTP client with configuration
+                var smtpClient = new SmtpClient(_configuration["Mail:Host"])
+                {
+                    Port = int.Parse(_configuration["Mail:Port"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    EnableSsl = true,
+                    DeliveryMethod = SmtpDeliveryMethod.Network,
+                    UseDefaultCredentials = false,
+                };
+
+                // Email Subject
+                string emailSubject = "Modification Request - Step Revision Required";
+
+                // Email Body
+                string emailBody = $@"
+<html>
+<head>
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            background-color: #ffffff;
+            color: #000000;
+            margin: 0;
+            padding: 20px;
+        }}
+        .container {{
+            max-width: 600px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #000000;
+        }}
+        .header {{
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #000000;
+        }}
+        .content {{
+            padding: 20px;
+            font-size: 16px;
+            line-height: 1.5;
+        }}
+        .footer {{
+            text-align: center;
+            padding: 10px;
+            font-size: 14px;
+            border-top: 1px solid #000000;
+            margin-top: 20px;
+        }}
+        .revision-notice {{
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 15px 0;
+        }}
+        .step-info {{
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }}
+    </style>
+</head>
+<body>
+    <div class='container'>
+        <div class='header'>
+            <img src='{_configuration["AppBaseURL:EmailLogo"]}' alt='Al Hamra Logo'>
+            <h2>Modification Request - Step Revision Required</h2>
+        </div>
+        <div class='content'>
+            <p>Dear {customerName},</p>
+            <div class='revision-notice'>
+                <p><strong>REQUEST STATUS: REVISION REQUIRED</strong></p>
+                <p>Your modification request requires revision at the <strong>{currentStep}</strong> stage.</p>
+            </div>
+            {(!string.IsNullOrEmpty(rejectionReason) ? $"<p><strong>Reason for Revision:</strong><br/>{rejectionReason}</p>" : "")}
+            <div class='step-info'>
+                <p><strong>Process Update:</strong></p>
+                <p>• <strong>Current Step:</strong> {currentStep} (Requires Revision)</p>
+                <p>• <strong>Returned to:</strong> Step 1 - Initial Review</p>
+                <p>• <strong>Status:</strong> Your request remains active and will be re-reviewed from the beginning</p>
+            </div>
+            <p><strong>Next Steps:</strong></p>
+            <ul>
+                <li>Review the feedback provided above</li>
+                <li>Make the necessary corrections to your modification request</li>
+                <li>Ensure compliance with all Al Hamra guidelines</li>
+                <li>The request will restart from Step 1 and proceed through all steps once corrections are verified</li>
+            </ul>
+            <p><strong>Good News:</strong> Your modification request is still active! This is a revision request, not a rejection. Once the identified issues are addressed, your request will continue processing.</p>
+            <p><strong>Please ensure your modifications comply with:</strong></p>
+            <ul>
+                <li>Al Hamra community guidelines and regulations</li>
+                <li>Dubai Municipality building codes</li>
+                <li>Safety and structural requirements</li>
+                <li>Environmental and aesthetic standards</li>
+            </ul>
+            <p>If you have any questions or need clarification regarding the required revisions, please feel free to contact us at 
+            <a href='mailto:propertymanagement@alhamra.ae' style='color: black;'>propertymanagement@alhamra.ae</a> or call us at 8002542672.</p>
+            <p>Thank you for your cooperation in ensuring all requirements are met.</p>
+        </div>
+        <div class='footer'>
+            <p style='color:#a6272e;'>Best Regards,</p>
+            <p style='color:#a6272e;'><strong>{(!string.IsNullOrEmpty(approverName) ? approverName : "PROPERTY MANAGEMENT")}</strong><br>AL HAMRA</p>
+        </div>
+    </div>
+</body>
+</html>";
+
+                // Create the email message
+                var mailMessage = new MailMessage
+                {
+                    From = new MailAddress(_configuration["Mail:From"]),
+                    Subject = emailSubject,
+                    Body = emailBody,
+                    IsBodyHtml = true,
+                };
+
+                // Add recipient
+                mailMessage.To.Add(email);
+
+                _logger.LogInformation("Sending modification step back rejection email to {Email} for customer {CustomerName}", email, customerName);
+
+                // Send the email
+                await smtpClient.SendMailAsync(mailMessage);
+
+                stopwatch.Stop();
+                _logger.LogInformation("Successfully sent modification step back rejection email to {Email} for customer {CustomerName} in {ElapsedMilliseconds}ms",
+                    email, customerName, stopwatch.ElapsedMilliseconds);
+            }
+            catch (SmtpException smtpEx)
+            {
+                stopwatch.Stop();
+                _logger.LogError(smtpEx,
+                    "SMTP error occurred while sending modification step back rejection email to {Email} for customer {CustomerName}. StatusCode: {StatusCode}",
+                    email, customerName, smtpEx.StatusCode);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                _logger.LogError(ex, "Error sending modification step back rejection email to {Email} for customer {CustomerName}: {ErrorMessage}",
+                    email, customerName, ex.Message);
+                throw;
+            }
         }
 
     }
