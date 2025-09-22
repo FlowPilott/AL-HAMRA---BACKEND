@@ -3032,7 +3032,7 @@ namespace WAS_Management.Controllers
                 };
 
                 // Email Subject
-                string emailSubject = "NOC Inspection Rejection Notice";
+                string emailSubject = "Resale NOC Inspection Rejection Notice";
 
                 // Email Body
                 string emailBody = $@"
@@ -3076,7 +3076,7 @@ namespace WAS_Management.Controllers
 <body>
     <div class='container'>
         <div class='header'>
-            <h2>NOC Inspection Rejection</h2>
+            <h2>Resale NOC Inspection Rejection</h2>
         </div>
         <div class='content'>
             <p>Dear {salesOpsStaffName},</p>
@@ -3190,12 +3190,22 @@ namespace WAS_Management.Controllers
                     DeliveryMethod = SmtpDeliveryMethod.Network,
                     UseDefaultCredentials = false,
                 };
+                var issues = nonComplianceIssues?
+    .Where(i => !string.IsNullOrWhiteSpace(i))
+    .Select(i => i.Trim())
+    .ToList();
 
+                string nonComplianceIssuesHtml = string.Empty;
+                if (issues != null && issues.Any())
+                {
+                    var listItems = string.Join("", issues.Select(issue => $"<li>{WebUtility.HtmlEncode(issue)}</li>"));
+                    nonComplianceIssuesHtml = $"<ul>{listItems}</ul>";
+                }
                 // Email Subject
-                string emailSubject = "NOC Inspection Rejection Notice";
+                string emailSubject = "Resale NOC Inspection Rejection Notice";
 
                 // Convert nonComplianceIssues list to bullet points
-                string nonComplianceIssuesHtml = "<ul>" + string.Join("", nonComplianceIssues.Select(issue => $"<li>{issue}</li>")) + "</ul>";
+               // string nonComplianceIssuesHtml = "<ul>" + string.Join("", nonComplianceIssues.Select(issue => $"<li>{issue}</li>")) + "</ul>";
 
                 // Email Body
                 string emailBody = $@"
@@ -3239,7 +3249,7 @@ namespace WAS_Management.Controllers
 <body>
     <div class='container'>
         <div class='header'>
-            <h2>NOC Inspection Rejection</h2>
+            <h2>Resale NOC Inspection Rejection</h2>
         </div>
         <div class='content'>
             <p>Dear {salesOpsStaffName},</p>
@@ -3489,7 +3499,7 @@ namespace WAS_Management.Controllers
                 };
 
                 // Email Subject - Updated for rejection
-                string emailSubject = $"NOC Inspection Rejection - Unit {unitCode}";
+                string emailSubject = $"Resale NOC Inspection Rejection - Unit {unitCode}";
 
                 // Convert nonComplianceIssues list to bullet points
                 string nonComplianceIssuesHtml = "<ul>" + string.Join("", nonComplianceIssues.Select(issue => $"<li>{issue}</li>")) + "</ul>";
@@ -3536,7 +3546,7 @@ namespace WAS_Management.Controllers
 <body>
     <div class='container'>
         <div class='header'>
-            <h2>NOC Inspection Rejection</h2>
+            <h2>Resale NOC Inspection Rejection</h2>
         </div>
         <div class='content'>
             <p>Dear {salesOpsStaffName},</p>
