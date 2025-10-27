@@ -22,8 +22,16 @@ Log.Logger = new LoggerConfiguration()
 builder.Host.UseSerilog();
 
 // Add CORS policy
-builder.Services.AddCors();
-
+//builder.Services.AddCors();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin()
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 // Add services to the container.
 builder.Services.AddControllers();
 
@@ -70,27 +78,27 @@ builder.Services.AddAuthorization();
 
 // Add Swagger services
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(options =>
-{
-    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Version = "v1",
-        Title = "WAS Management API",
-        Description = "An ASP.NET Core Web API for WAS Management",
-        TermsOfService = new Uri("https://example.com/terms"),
-        Contact = new Microsoft.OpenApi.Models.OpenApiContact
-        {
-            Name = "Support Team",
-            Email = "support@example.com",
-            Url = new Uri("https://example.com/contact"),
-        },
-        License = new Microsoft.OpenApi.Models.OpenApiLicense
-        {
-            Name = "Use under LICX",
-            Url = new Uri("https://example.com/license"),
-        }
-    });
-});
+//builder.Services.AddSwaggerGen(options =>
+//{
+//    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+//    {
+//        Version = "v1",
+//        Title = "WAS Management API",
+//        Description = "An ASP.NET Core Web API for WAS Management",
+//        TermsOfService = new Uri("https://example.com/terms"),
+//        Contact = new Microsoft.OpenApi.Models.OpenApiContact
+//        {
+//            Name = "Support Team",
+//            Email = "support@example.com",
+//            Url = new Uri("https://example.com/contact"),
+//        },
+//        License = new Microsoft.OpenApi.Models.OpenApiLicense
+//        {
+//            Name = "Use under LICX",
+//            Url = new Uri("https://example.com/license"),
+//        }
+//    });
+//});
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
@@ -104,11 +112,11 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 
 
 // Configure the HTTP request pipeline.
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "WAS Management API V1");
-});
+//app.UseSwagger();
+//app.UseSwaggerUI(c =>
+//{
+//    c.SwaggerEndpoint("/swagger/v1/swagger.json", "WAS Management API V1");
+//});
 
 if (app.Environment.IsDevelopment())
 {

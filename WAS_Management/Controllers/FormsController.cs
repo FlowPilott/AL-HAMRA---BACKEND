@@ -609,7 +609,7 @@ namespace WAS_Management.Controllers
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
-                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:NotiUsername"], _configuration["Mail:NotiPassword"]),
                     EnableSsl = true,
                     DeliveryMethod = SmtpDeliveryMethod.Network,
                     UseDefaultCredentials = false,
@@ -711,7 +711,7 @@ namespace WAS_Management.Controllers
 
                 var mailMessage = new MailMessage
                 {
-                    From = new MailAddress(_configuration["Mail:From"]),
+                    From = new MailAddress(_configuration["Mail:NotiFrom"]),
                     Subject = emailSubject,
                     Body = emailBody,
                     IsBodyHtml = true,
@@ -790,7 +790,7 @@ namespace WAS_Management.Controllers
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
-                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:NotiUsername"], _configuration["Mail:NotiPassword"]),
                     EnableSsl = true,
                     DeliveryMethod = SmtpDeliveryMethod.Network,
                     UseDefaultCredentials = false,
@@ -893,7 +893,7 @@ namespace WAS_Management.Controllers
                 // Create the email message
                 var mailMessage = new MailMessage
                 {
-                    From = new MailAddress(_configuration["Mail:From"]),
+                    From = new MailAddress(_configuration["Mail:NotiFrom"]),
                     Subject = emailSubject,
                     Body = emailBody,
                     IsBodyHtml = true,
@@ -1143,7 +1143,7 @@ namespace WAS_Management.Controllers
                 var smtpClient = new SmtpClient(_configuration["Mail:Host"])
                 {
                     Port = int.Parse(_configuration["Mail:Port"]),
-                    Credentials = new NetworkCredential(_configuration["Mail:Username"], _configuration["Mail:Password"]),
+                    Credentials = new NetworkCredential(_configuration["Mail:NotiUsername"], _configuration["Mail:NotiPassword"]),
                     EnableSsl = true,
                     DeliveryMethod = SmtpDeliveryMethod.Network,
                     UseDefaultCredentials = false,
@@ -1190,7 +1190,7 @@ namespace WAS_Management.Controllers
 
                 var mailMessage = new MailMessage
                 {
-                    From = new MailAddress(_configuration["Mail:From"]),
+                    From = new MailAddress(_configuration["Mail:NotiFrom"]),
                     Subject = emailSubject,
                     Body = emailBody,
                     IsBodyHtml = true,
